@@ -149,12 +149,15 @@ namespace LaptopAZ.UI
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             
             // Định nghĩa các đường dẫn tương đối có thể chứa tệp tin SQL
+            // Lưu ý: SDK-style project đặt output tại bin\Debug\net472\, nên cần đi lên 4 cấp
+            // để thoát ra khỏi LaptopAZ.UI\ và đến thư mục gốc của solution chứa folder SQL\
             string[] paths = new[]
             {
                 Path.Combine(baseDir, "SQL", "LaptopAZDatabase.sql"),
                 Path.Combine(baseDir, "LaptopAZDatabase.sql"),
-                Path.Combine(baseDir, "..", "..", "..", "SQL", "LaptopAZDatabase.sql"),
-                Path.Combine(baseDir, "..", "..", "SQL", "LaptopAZDatabase.sql")
+                Path.Combine(baseDir, "..", "..", "..", "..", "SQL", "LaptopAZDatabase.sql"), // SDK: bin\Debug\net472\ -> root
+                Path.Combine(baseDir, "..", "..", "..", "SQL", "LaptopAZDatabase.sql"),       // Fallback: 3 cấp
+                Path.Combine(baseDir, "..", "..", "SQL", "LaptopAZDatabase.sql")              // Fallback: 2 cấp
             };
 
             foreach (var path in paths)
