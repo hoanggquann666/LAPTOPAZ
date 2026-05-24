@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="../LaptopAZ.BLL/LaptopAZ.BLL.csproj" Id="91256a9f-7d45-4843-a5d1-25e2d1c16fa8" />
+  <Project Path="../LaptopAZ.DAL/LaptopAZ.DAL.csproj" Id="b970465b-2a24-4359-9cc2-6784aa70b809" />
+  <Project Path="../LaptopAZ.DTO/LaptopAZ.DTO.csproj" Id="22aafaa6-22b7-4360-81a2-a642abcfe7bf" />
+  <Project Path="../LaptopAZ.Helpers/LaptopAZ.Helpers.csproj" Id="0f8c2780-6728-48c6-b160-95e051a4374f" />
+  <Project Path="../LaptopAZ.Models/LaptopAZ.Models.csproj" Id="b535b054-f234-4caf-9e03-2669ca7c7b6e" />
+  <Project Path="../LaptopAZ.Repository/LaptopAZ.Repository.csproj" Id="d9ce1118-6aff-4f67-be08-980c83e6412d" />
+  <Project Path="LaptopAZ.UI.csproj" Id="631a7b2e-0edb-4d84-9c68-137c7f742427" />
+</Solution>

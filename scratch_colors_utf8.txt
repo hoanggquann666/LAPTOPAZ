@@ -1,0 +1,238 @@
+﻿
+LineNumber Line                                                                                                        
+---------- ----                                                                                                        
+        86             this.BackColor = Color.FromArgb(248, 250, 252); // Canvas sáng slate-50                         
+        87             panelSidebar.BackColor = Color.FromArgb(241, 245, 249); // Sidebar sáng slate-100               
+        89             panelMainContainer.BackColor = Color.FromArgb(248, 250, 252);                                   
+        91             panelActiveIndicator.BackColor = Color.FromArgb(0, 82, 204); // Chỉ báo Brand Blue              
+        94             lblActiveTabTitle.ForeColor = Color.FromArgb(15, 23, 42); // slate-900                          
+        96             lblClock.ForeColor = Color.FromArgb(100, 116, 139); // slate-500                                
+       107                     btn.ForeColor = Color.FromArgb(71, 85, 105); // slate-600                               
+       111                     btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(226, 232, 240); // slate-200     
+       112                     btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(203, 213, 225); // slate-300     
+       119             lblSidebarBrand.ForeColor = Color.FromArgb(0, 82, 204);                                         
+       127             lblSidebarSubtitle.ForeColor = Color.FromArgb(148, 163, 184); // slate-400                      
+       138             pnlSearch.BackColor = Color.FromArgb(241, 245, 249); // slate-100                               
+       140                 using (var pen = new Pen(Color.FromArgb(226, 232, 240), 1))                                 
+       151             txtSearchSystem.ForeColor = Color.FromArgb(148, 163, 184); // slate-400                         
+       153             txtSearchSystem.BackColor = Color.FromArgb(241, 245, 249);                                      
+       161             lblSearchIcon.ForeColor = Color.FromArgb(148, 163, 184);                                        
+       170             lblBell.ForeColor = Color.FromArgb(100, 116, 139);                                              
+       180             lblHelp.ForeColor = Color.FromArgb(100, 116, 139);                                              
+       191             lblHeaderUser.ForeColor = Color.FromArgb(30, 41, 59);                                           
+       205                 using (var brush = new SolidBrush(Color.FromArgb(219, 234, 254)))                           
+       209                 using (var pen = new Pen(Color.FromArgb(191, 219, 254), 1))                                 
+       215                 using (var brush = new SolidBrush(Color.FromArgb(0, 82, 204)))                              
+       228             btnLogout.BackColor = Color.FromArgb(254, 226, 226); // red-100                                 
+       229             btnLogout.ForeColor = Color.FromArgb(220, 38, 38); // red-600                                   
+       232             btnLogout.FlatAppearance.MouseOverBackColor = Color.FromArgb(254, 202, 202);                    
+       233             btnLogout.FlatAppearance.MouseDownBackColor = Color.FromArgb(252, 165, 165);                    
+       237             Button btnNewInventory = CreatePremiumButton("+ New Inventory", Color.FromArgb(0, 82, 204), C...
+       271                 using (var brush = new SolidBrush(Color.FromArgb(219, 234, 254)))                           
+       275                 using (var pen = new Pen(Color.FromArgb(191, 219, 254), 1))                                 
+       281                 using (var brush = new SolidBrush(Color.FromArgb(0, 82, 204)))                              
+       292             lblEmpName.ForeColor = Color.FromArgb(30, 41, 59);                                              
+       301             lblEmpEmail.ForeColor = Color.FromArgb(100, 116, 139);                                          
+       317                     if (pnl.BackColor == Color.FromArgb(30, 41, 59) ||                                      
+       318                         pnl.BackColor == Color.FromArgb(15, 23, 42) ||                                      
+       319                         pnl.BackColor == Color.FromArgb(26, 36, 53) ||                                      
+       320                         pnl.BackColor == Color.FromArgb(17, 24, 39))                                        
+       324                             pnl.BackColor = Color.FromArgb(241, 245, 249); // slate-100 for toolbars/headers
+       335                 if (txt.BackColor == Color.FromArgb(15, 23, 42) ||                                          
+       336                     txt.BackColor == Color.FromArgb(30, 41, 59) ||                                          
+       337                     txt.BackColor == Color.FromArgb(26, 36, 53) ||                                          
+       338                     txt.BackColor == Color.FromArgb(17, 24, 39))                                            
+       341                     txt.ForeColor = Color.FromArgb(30, 41, 59);                                             
+       346                         txt.BackColor = Color.FromArgb(248, 250, 252); // slate-50                          
+       355                 if (cb.BackColor == Color.FromArgb(15, 23, 42) ||                                           
+       356                     cb.BackColor == Color.FromArgb(30, 41, 59) ||                                           
+       357                     cb.BackColor == Color.FromArgb(26, 36, 53) ||                                           
+       358                     cb.BackColor == Color.FromArgb(17, 24, 39))                                             
+       361                     cb.ForeColor = Color.FromArgb(30, 41, 59);                                              
+       367                 if (clb.BackColor == Color.FromArgb(15, 23, 42) ||                                          
+       368                     clb.BackColor == Color.FromArgb(30, 41, 59) ||                                          
+       369                     clb.BackColor == Color.FromArgb(26, 36, 53) ||                                          
+       370                     clb.BackColor == Color.FromArgb(17, 24, 39))                                            
+       373                     clb.ForeColor = Color.FromArgb(30, 41, 59);                                             
+       382                         lbl.ForeColor == Color.FromArgb(243, 244, 246) ||                                   
+       383                         lbl.ForeColor == Color.FromArgb(203, 213, 225) ||                                   
+       384                         lbl.ForeColor == Color.FromArgb(156, 163, 175) ||                                   
+       385                         lbl.ForeColor == Color.FromArgb(148, 163, 184))                                     
+       387                         lbl.ForeColor = Color.FromArgb(71, 85, 105); // slate-600                           
+       394                     chk.ForeColor == Color.FromArgb(243, 244, 246) ||                                       
+       395                     chk.ForeColor == Color.FromArgb(203, 213, 225))                                         
+       397                     chk.ForeColor = Color.FromArgb(71, 85, 105);                                            
+       404                     if (btn.BackColor == Color.FromArgb(30, 41, 59) ||                                      
+       405                         btn.BackColor == Color.FromArgb(15, 23, 42) ||                                      
+       406                         btn.BackColor == Color.FromArgb(26, 36, 53) ||                                      
+       407                         btn.BackColor == Color.FromArgb(17, 24, 39))                                        
+       409                         btn.BackColor = Color.FromArgb(0, 82, 204);                                         
+       434                                 Color bgPill = Color.FromArgb(241, 245, 249); // slate-100                  
+       435                                 Color textPill = Color.FromArgb(71, 85, 105); // slate-600                  
+       439                                     bgPill = Color.FromArgb(204, 251, 241); // teal-50                      
+       440                                     textPill = Color.FromArgb(13, 148, 136); // teal-600                    
+       444                                     bgPill = Color.FromArgb(254, 226, 226); // red-50                       
+       445                                     textPill = Color.FromArgb(220, 38, 38); // red-600                      
+       449                                     bgPill = Color.FromArgb(255, 237, 213); // orange-50                    
+       450                                     textPill = Color.FromArgb(234, 88, 12); // orange-600                   
+       557                         b.ForeColor = Color.FromArgb(0, 82, 204); // Brand Blue                             
+       562                         b.ForeColor = Color.FromArgb(71, 85, 105); // slate-600                             
+       633                 ForeColor = Color.FromArgb(30, 41, 59), // slate-800                                        
+       646                 ForeColor = Color.FromArgb(30, 41, 59), // slate-800                                        
+       649                 GridColor = Color.FromArgb(241, 245, 249), // slate-100 very soft lines                     
+       661             grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(100, 116, 139); // slate-500      
+       667             grid.DefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);                                   
+       668             grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(239, 246, 255); // very soft blue h...
+       669             grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(0, 82, 204); // Brand Blue text       
+       673             grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252); // slate-50     
+       674             grid.AlternatingRowsDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);                    
+       683             if (backColor == Color.FromArgb(30, 41, 59) ||                                                  
+       684                 backColor == Color.FromArgb(15, 23, 42) ||                                                  
+       685                 backColor == Color.FromArgb(26, 36, 53) ||                                                  
+       686                 backColor == Color.FromArgb(17, 24, 39))                                                    
+       700                 Color borderColor = (finalBackColor == Color.White || finalBackColor == Color.FromArgb(24...
+       701                     ? Color.FromArgb(226, 232, 240) // slate-200                                            
+       702                     : Color.FromArgb(44, 55, 78);   // slate-700                                            
+       720             if (backColor == Color.FromArgb(79, 70, 229) || backColor == Color.FromArgb(67, 56, 202))       
+       722                 finalBgColor = Color.FromArgb(0, 82, 204);                                                  
+       771                 Color.FromArgb(239, 246, 255), // light brand blue                                          
+       772                 Color.FromArgb(0, 82, 204),                                                                 
+       774                 Color.FromArgb(239, 246, 255),                                                              
+       775                 Color.FromArgb(0, 82, 204)                                                                  
+       782                 Color.FromArgb(241, 245, 249), // slate-100                                                 
+       783                 Color.FromArgb(100, 116, 139), // slate-500                                                 
+       785                 Color.FromArgb(241, 245, 249),                                                              
+       786                 Color.FromArgb(30, 41, 59) // slate-800                                                     
+       793                 Color.FromArgb(254, 242, 242), // light red                                                 
+       794                 Color.FromArgb(220, 38, 38),                                                                
+       796                 Color.FromArgb(254, 242, 242),                                                              
+       797                 Color.FromArgb(220, 38, 38)                                                                 
+       804                 Color.FromArgb(240, 253, 250), // light teal                                                
+       805                 Color.FromArgb(13, 148, 136),                                                               
+       807                 Color.FromArgb(240, 253, 250),                                                              
+       808                 Color.FromArgb(13, 148, 136)                                                                
+       830                 ForeColor = Color.FromArgb(0, 82, 204),                                                     
+       831                 LinkColor = Color.FromArgb(0, 82, 204),                                                     
+       832                 ActiveLinkColor = Color.FromArgb(9, 97, 239),                                               
+       833                 VisitedLinkColor = Color.FromArgb(0, 82, 204),                                              
+       877                     Color circleColor = qty == 0 ? Color.FromArgb(239, 68, 68) : Color.FromArgb(251, 146,...
+       908                     Color bgPill = Color.FromArgb(254, 226, 226); // light red                              
+       909                     Color textPill = Color.FromArgb(220, 38, 38); // dark red                               
+       913                         bgPill = Color.FromArgb(255, 237, 213); // light orange                             
+       914                         textPill = Color.FromArgb(234, 88, 12); // dark orange                              
+       991                     Color bgRank = Color.FromArgb(241, 245, 249); // slate-100                              
+       992                     Color textRank = Color.FromArgb(71, 85, 105); // slate-600                              
+       996                         bgRank = Color.FromArgb(219, 234, 254); // light blue                               
+       997                         textRank = Color.FromArgb(0, 82, 204); // Brand Blue                                
+      1043                         using (var brushTitle = new SolidBrush(Color.FromArgb(30, 41, 59))) // Slate-800    
+      1049                         using (var brushSub = new SolidBrush(Color.FromArgb(148, 163, 184))) // Slate-400   
+      1066                     Color bgPill = isPositive ? Color.FromArgb(204, 251, 241) : Color.FromArgb(254, 226, ...
+      1067                     Color textPill = isPositive ? Color.FromArgb(13, 148, 136) : Color.FromArgb(220, 38, ...
+      1102                 using (var pen = new Pen(Color.FromArgb(191, 219, 254), 1.5F))                              
+      1112                 ForeColor = Color.FromArgb(0, 82, 204),                                                     
+      1122                 ForeColor = Color.FromArgb(100, 116, 139),                                                  
+      1144                 using (var brush = new SolidBrush(Color.FromArgb(219, 234, 254)))                           
+      1149                 using (var brush = new SolidBrush(Color.FromArgb(0, 82, 204)))                              
+      1160                 ForeColor = Color.FromArgb(30, 41, 59),                                                     
+      1169                 ForeColor = Color.FromArgb(100, 116, 139),                                                  
+      1175             var btnViewTrend = CreatePremiumButton("Xem báo cáo chi tiết", Color.FromArgb(0, 82, 204), Co...
+      1184                     Color.FromArgb(226, 232, 240), // slate-200                                             
+      1185                     Color.FromArgb(248, 250, 252), // slate-50                                              
+      1190                 using (var pen = new Pen(Color.FromArgb(203, 213, 225), 1))                                 
+      1220                 using (var pen = new Pen(Color.FromArgb(226, 232, 240), 1)) // slate-200                    
+      1270                 ForeColor = Color.FromArgb(148, 163, 184), // slate-400                                     
+      1310             var pnlLeft = CreatePremiumPanel(Color.FromArgb(15, 23, 42), 0);                                
+      1314             var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.FromArgb(30,...
+      1315             var txtSearch = new TextBox { Location = new Point(15, 18), Width = 180, Font = new Font("Seg...
+      1317             var btnSearch = CreatePremiumButton("TÌM KIẾM", Color.FromArgb(245, 158, 11), Color.White);     
+      1321             var btnAdd = CreatePremiumButton("+ THÊM LAPTOP", Color.FromArgb(16, 185, 129), Color.White);   
+      1349             _pnlProductEditor = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 20);                         
+      1377             var btnSave = CreatePremiumButton("LƯU LẠI", Color.FromArgb(16, 185, 129), Color.White);        
+      1382             var btnCancel = CreatePremiumButton("HỦY BỎ", Color.FromArgb(100, 116, 139), Color.White);      
+      1455             var lbl = new Label { Text = labelText, ForeColor = Color.FromArgb(203, 213, 225), Font = new...
+      1456             var txt = new TextBox { Width = 280, Font = new Font("Segoe UI", 10F), BackColor = Color.From...
+      1466             var lbl = new Label { Text = labelText, ForeColor = Color.FromArgb(203, 213, 225), Font = new...
+      1467             var cb = new ComboBox { Width = 280, Font = new Font("Segoe UI", 10F), BackColor = Color.From...
+      1596             var pnlLeft = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 15);                               
+      1604             var lblCatName = new Label { Text = "Tên danh mục mới:", ForeColor = Color.FromArgb(203, 213,...
+      1605             _txtCategoryName = new TextBox { Width = 220, Font = new Font("Segoe UI", 10F), BackColor = C...
+      1607             var btnAddCat = CreatePremiumButton("THÊM", Color.FromArgb(16, 185, 129), Color.White);         
+      1622             var btnDelCat = CreatePremiumButton("XÓA CHỌN", Color.FromArgb(239, 68, 68), Color.White);      
+      1655             var pnlRight = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 15);                              
+      1663             var lblBrandName = new Label { Text = "Tên thương hiệu mới:", ForeColor = Color.FromArgb(203,...
+      1664             _txtBrandName = new TextBox { Width = 220, Font = new Font("Segoe UI", 10F), BackColor = Colo...
+      1666             var btnAddBrand = CreatePremiumButton("THÊM", Color.FromArgb(16, 185, 129), Color.White);       
+      1681             var btnDelBrand = CreatePremiumButton("XÓA CHỌN", Color.FromArgb(239, 68, 68), Color.White);    
+      1756             var pnlLeft = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 15);                               
+      1764             var txtCustSearch = new TextBox { Width = 200, Font = new Font("Segoe UI", 10F), BackColor = ...
+      1765             var btnCustSearch = CreatePremiumButton("TÌM", Color.FromArgb(59, 130, 246), Color.White);      
+      1770             var btnCustNew = CreatePremiumButton("MỚI", Color.FromArgb(100, 116, 139), Color.White);        
+      1813             var btnCustSave = CreatePremiumButton("LƯU KHÁCH HÀNG", Color.FromArgb(16, 185, 129), Color.W...
+      1823             var pnlRight = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 15);                              
+      1831             var txtSuppSearch = new TextBox { Width = 200, Font = new Font("Segoe UI", 10F), BackColor = ...
+      1832             var btnSuppSearch = CreatePremiumButton("TÌM", Color.FromArgb(59, 130, 246), Color.White);      
+      1837             var btnSuppNew = CreatePremiumButton("MỚI", Color.FromArgb(100, 116, 139), Color.White);        
+      1879             var btnSuppSave = CreatePremiumButton("LƯU NHÀ CUNG CẤP", Color.FromArgb(16, 185, 129), Color...
+      2022             var pnlLeft = CreatePremiumPanel(Color.FromArgb(15, 23, 42), 0);                                
+      2025             var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.FromArgb(30,...
+      2028             var btnAddStaff = CreatePremiumButton("+ THÊM NHÂN VIÊN", Color.FromArgb(16, 185, 129), Color...
+      2056             var pnlRight = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 20);                              
+      2076             var btnSave = CreatePremiumButton("LƯU LẠI", Color.FromArgb(16, 185, 129), Color.White);        
+      2081             var btnCancel = CreatePremiumButton("HỦY BỎ", Color.FromArgb(100, 116, 139), Color.White);      
+      2239             var pnlLeft = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 15);                               
+      2249             var lblSupp = new Label { Text = "Nhà Cung Cấp *:", ForeColor = Color.FromArgb(203, 213, 225)...
+      2250             _cbImportSupplier = new ComboBox { Width = 250, Font = new Font("Segoe UI", 10F), BackColor =...
+      2255             var lblProd = new Label { Text = "Sản phẩm Laptop *:", ForeColor = Color.FromArgb(203, 213, 2...
+      2256             _cbImportProduct = new ComboBox { Width = 250, Font = new Font("Segoe UI", 10F), BackColor = ...
+      2273             var lblQty = new Label { Text = "Số lượng *:", ForeColor = Color.FromArgb(203, 213, 225), Loc...
+      2274             _txtImportQty = new TextBox { Width = 80, Font = new Font("Segoe UI", 10F), BackColor = Color...
+      2279             var lblPrice = new Label { Text = "Giá Nhập (VNĐ) *:", ForeColor = Color.FromArgb(203, 213, 2...
+      2280             _txtImportPrice = new TextBox { Width = 150, Font = new Font("Segoe UI", 10F), BackColor = Co...
+      2285             var lblSerials = new Label { Text = "Nhập danh sách Serial (Mỗi serial một dòng, hoặc cách nh...
+      2286             _txtImportSerials = new TextBox { Width = 250, Height = 100, Multiline = true, Font = new Fon...
+      2290             var btnAddCart = CreatePremiumButton("THÊM VÀO LÔ NHẬP", Color.FromArgb(245, 158, 11), Color....
+      2312             var pnlCheckout = new Panel { Dock = DockStyle.Bottom, Height = 60, BackColor = Color.FromArg...
+      2313             _lblImportTotal = new Label { Text = "TỔNG TIỀN NHẬP KHO: 0 đ", ForeColor = Color.FromArgb(24...
+      2314             var btnConfirmImport = CreatePremiumButton("✔ XÁC NHẬN NHẬP KHO", Color.FromArgb(16, 185, 129...
+      2325             var pnlRight = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 15);                              
+      2504                 BackColor = Color.FromArgb(30, 41, 59),                                                     
+      2552             var pnlLeft = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 15);                               
+      2560             var pnlCust = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = Color.FromArgb(15, ...
+      2562             var lblPhone = new Label { Text = "SĐT Khách Hàng:", ForeColor = Color.FromArgb(203, 213, 225...
+      2563             _txtSalesCustPhone = new TextBox { Width = 150, Font = new Font("Segoe UI", 10F), BackColor =...
+      2565             var btnLookup = CreatePremiumButton("TÌM", Color.FromArgb(59, 130, 246), Color.White);          
+      2569             var lblCustName = new Label { Text = "Tên Khách Hàng *:", ForeColor = Color.FromArgb(203, 213...
+      2570             _txtSalesCustName = new TextBox { Width = 150, Font = new Font("Segoe UI", 10F), BackColor = ...
+      2572             var lblCustEmail = new Label { Text = "Email:", ForeColor = Color.FromArgb(203, 213, 225), Lo...
+      2573             _txtSalesCustEmail = new TextBox { Width = 140, Font = new Font("Segoe UI", 10F), BackColor =...
+      2610             var lblSelProd = new Label { Text = "Chọn Laptop:", ForeColor = Color.FromArgb(203, 213, 225)...
+      2611             var cbProd = new ComboBox { Width = 250, Font = new Font("Segoe UI", 10F), BackColor = Color....
+      2612             var btnAddCart = CreatePremiumButton("+ GIỎ HÀNG", Color.FromArgb(245, 158, 11), Color.White);  
+      2668             var btnSelectSerials = CreatePremiumButton("🔎 CHỌN SERIAL CHO MÁY", Color.FromArgb(16, 185, ...
+      2676             var btnIncreaseQty = CreatePremiumButton("+ SL", Color.FromArgb(59, 130, 246), Color.White);    
+      2680             var btnDecreaseQty = CreatePremiumButton("- SL", Color.FromArgb(59, 130, 246), Color.White);    
+      2684             var btnRemoveItem = CreatePremiumButton("XÓA DÒNG", Color.FromArgb(239, 68, 68), Color.White);  
+      2695             var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 90, BackColor = Color.FromArgb(...
+      2697             _lblSalesSubTotal = new Label { Text = "Tạm tính: 0 đ", ForeColor = Color.FromArgb(203, 213, ...
+      2699             var lblDiscount = new Label { Text = "Giảm giá (đ):", ForeColor = Color.FromArgb(203, 213, 22...
+      2700             _txtSalesDiscount = new TextBox { Width = 110, Font = new Font("Segoe UI", 9.5F), BackColor =...
+      2703             _lblSalesFinalTotal = new Label { Text = "THÀNH TIỀN: 0 đ", ForeColor = Color.FromArgb(245, 1...
+      2705             var btnPay = CreatePremiumButton("💳 XUẤT HÓA ĐƠN", Color.FromArgb(16, 185, 129), Color.White); 
+      2719             var pnlRight = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 15);                              
+      2825                 BackColor = Color.FromArgb(30, 41, 59),                                                     
+      2847             var pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 50, BackColor = Color.FromArgb...
+      2848             var btnConfirm = CreatePremiumButton("XÁC NHẬN", Color.FromArgb(16, 185, 129), Color.White);    
+      2994                 BackColor = Color.FromArgb(30, 41, 59),                                                     
+      3040             var pnlLeft = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 15);                               
+      3048             var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 90, BackColor = Color.FromArgb(15,...
+      3049             var lblSearch = new Label { Text = "Nhập Mã Hóa Đơn hoặc SĐT Khách Hàng:", ForeColor = Color....
+      3050             _txtReturnsSearch = new TextBox { Width = 230, Font = new Font("Segoe UI", 10F), BackColor = ...
+      3052             var btnSearch = CreatePremiumButton("TÌM HÓA ĐƠN", Color.FromArgb(59, 130, 246), Color.White);  
+      3083             var lblSerials = new Label { Text = "Chọn số Serial máy khách trả lại:", ForeColor = Color.Fr...
+      3084             _clbReturnsSerials = new CheckedListBox { Width = 260, Height = 140, BackColor = Color.FromAr...
+      3086             var lblReason = new Label { Text = "Lý do đổi trả / Tình trạng lỗi *:", ForeColor = Color.Fro...
+      3087             _txtReturnsReason = new TextBox { Width = 240, Height = 80, Multiline = true, BackColor = Col...
+      3089             var btnSubmitReturn = CreatePremiumButton("✔ XÁC NHẬN NHẬN TRẢ HÀNG", Color.FromArgb(239, 68,...
+      3103             var pnlRight = CreatePremiumPanel(Color.FromArgb(30, 41, 59), 15);                              
+
+

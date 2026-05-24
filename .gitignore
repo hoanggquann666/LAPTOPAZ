@@ -1,0 +1,13 @@
+.vs/
+bin/
+obj/
+
+*.user
+*.suo
+
+packages/
+
+Debug/
+Release/
+
+*.cache

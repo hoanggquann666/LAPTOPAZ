@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="EntityFramework" Version="6.4.4" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="LiveCharts.WinForms" Version="0.9.7.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Configuration" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LaptopAZ.BLL\LaptopAZ.BLL.csproj" />
+    <ProjectReference Include="..\LaptopAZ.DTO\LaptopAZ.DTO.csproj" />
+    <ProjectReference Include="..\LaptopAZ.Helpers\LaptopAZ.Helpers.csproj" />
+    <ProjectReference Include="..\LaptopAZ.Models\LaptopAZ.Models.csproj" />
+    <ProjectReference Include="..\LaptopAZ.Repository\LaptopAZ.Repository.csproj" />
+    <ProjectReference Include="..\LaptopAZ.DAL\LaptopAZ.DAL.csproj" />
+  </ItemGroup>
+</Project>
