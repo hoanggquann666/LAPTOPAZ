@@ -225,7 +225,8 @@ GO
 INSERT INTO Roles (RoleName) VALUES 
 ('Admin'),
 ('WarehouseStaff'),
-('SalesStaff');
+('SalesStaff'),
+('Accountant');
 
 -- ========================================================================
 -- 2. CHÈN DỮ LIỆU BẢNG USERS (NHÂN VIÊN)
@@ -234,7 +235,8 @@ INSERT INTO Roles (RoleName) VALUES
 INSERT INTO Users (Username, PasswordHash, FullName, Phone, Email, RoleId) VALUES
 ('tuan.leadmin', 'pbkdf2_sha256$260000$adminhashpwd123', N'Lê Minh Tuấn', '0912345678', 'tuan.le@laptopaz.vn', 1),
 ('mai.nguyenkho', 'pbkdf2_sha256$260000$warehousehash456', N'Nguyễn Thị Phương Mai', '0987654321', 'mai.ntp@laptopaz.vn', 2),
-('nam.tranbanhang', 'pbkdf2_sha256$260000$saleshash789', N'Trần Hải Nam', '0905123456', 'nam.th@laptopaz.vn', 3);
+('nam.tranbanhang', 'pbkdf2_sha256$260000$saleshash789', N'Trần Hải Nam', '0905123456', 'nam.th@laptopaz.vn', 3),
+('linh.ketoan', 'pbkdf2_sha256$260000$accountanthash321', N'Phạm Thùy Linh', '0978123456', 'linh.pt@laptopaz.vn', 4);
 
 -- ========================================================================
 -- 3. CHÈN DỮ LIỆU BẢNG CATEGORIES (DANH MỤC)

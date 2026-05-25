@@ -162,6 +162,9 @@ namespace LaptopAZ.DTO
         public int OrdersCountToday { get; set; }
         public int LowStockCount { get; set; }
         public int ProductsCount { get; set; }
+        public int PendingOrdersCount { get; set; }
+        public int CancelledOrdersCount { get; set; }
+        public int CompletedOrdersCount { get; set; }
         public List<BestSellerProductDTO> BestSellers { get; set; } = new List<BestSellerProductDTO>();
         public List<LowStockProductDTO> LowStockAlerts { get; set; } = new List<LowStockProductDTO>();
         public Dictionary<string, decimal> MonthlyRevenue { get; set; } = new Dictionary<string, decimal>();
@@ -179,5 +182,24 @@ namespace LaptopAZ.DTO
         public string ProductCode { get; set; }
         public string ProductName { get; set; }
         public int QuantityInStock { get; set; }
+    }
+
+    public class OrderStatusCountDTO
+    {
+        public string Status { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class DapperRevenueDTO
+    {
+        public string Period { get; set; }
+        public decimal Revenue { get; set; }
+    }
+
+    public class DapperTopProductDTO
+    {
+        public string ProductName { get; set; }
+        public int QuantitySold { get; set; }
+        public decimal TotalRevenue { get; set; }
     }
 }

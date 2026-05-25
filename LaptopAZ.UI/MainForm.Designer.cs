@@ -25,6 +25,7 @@ namespace LaptopAZ.UI
             this.btnTabCategories = new System.Windows.Forms.Button();
             this.btnTabImport = new System.Windows.Forms.Button();
             this.btnTabSales = new System.Windows.Forms.Button();
+            this.btnTabOrders = new System.Windows.Forms.Button();
             this.btnTabReturns = new System.Windows.Forms.Button();
             this.btnTabPartners = new System.Windows.Forms.Button();
             this.btnTabStaff = new System.Windows.Forms.Button();
@@ -45,6 +46,7 @@ namespace LaptopAZ.UI
             this.panelSidebar.Controls.Add(this.btnTabStaff);
             this.panelSidebar.Controls.Add(this.btnTabPartners);
             this.panelSidebar.Controls.Add(this.btnTabReturns);
+            this.panelSidebar.Controls.Add(this.btnTabOrders);
             this.panelSidebar.Controls.Add(this.btnTabSales);
             this.panelSidebar.Controls.Add(this.btnTabImport);
             this.panelSidebar.Controls.Add(this.btnTabCategories);
@@ -167,6 +169,24 @@ namespace LaptopAZ.UI
             this.btnTabSales.UseVisualStyleBackColor = true;
             this.btnTabSales.Click += new System.EventHandler(this.TabButton_Click);
             // 
+            // btnTabOrders
+            // 
+            this.btnTabOrders.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnTabOrders.FlatAppearance.BorderSize = 0;
+            this.btnTabOrders.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
+            this.btnTabOrders.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
+            this.btnTabOrders.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnTabOrders.Font = new System.Drawing.Font("Segoe UI Semibold", 10.5F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnTabOrders.ForeColor = System.Drawing.Color.White;
+            this.btnTabOrders.Location = new System.Drawing.Point(6, 350);
+            this.btnTabOrders.Name = "btnTabOrders";
+            this.btnTabOrders.Size = new System.Drawing.Size(214, 45);
+            this.btnTabOrders.TabIndex = 10;
+            this.btnTabOrders.Text = "  📋   Quản Lý Đơn";
+            this.btnTabOrders.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnTabOrders.UseVisualStyleBackColor = true;
+            this.btnTabOrders.Click += new System.EventHandler(this.TabButton_Click);
+            // 
             // btnTabReturns
             // 
             this.btnTabReturns.Cursor = System.Windows.Forms.Cursors.Hand;
@@ -176,7 +196,7 @@ namespace LaptopAZ.UI
             this.btnTabReturns.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnTabReturns.Font = new System.Drawing.Font("Segoe UI Semibold", 10.5F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnTabReturns.ForeColor = System.Drawing.Color.White;
-            this.btnTabReturns.Location = new System.Drawing.Point(6, 350);
+            this.btnTabReturns.Location = new System.Drawing.Point(6, 400);
             this.btnTabReturns.Name = "btnTabReturns";
             this.btnTabReturns.Size = new System.Drawing.Size(214, 45);
             this.btnTabReturns.TabIndex = 7;
@@ -194,7 +214,7 @@ namespace LaptopAZ.UI
             this.btnTabPartners.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnTabPartners.Font = new System.Drawing.Font("Segoe UI Semibold", 10.5F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnTabPartners.ForeColor = System.Drawing.Color.White;
-            this.btnTabPartners.Location = new System.Drawing.Point(6, 400);
+            this.btnTabPartners.Location = new System.Drawing.Point(6, 450);
             this.btnTabPartners.Name = "btnTabPartners";
             this.btnTabPartners.Size = new System.Drawing.Size(214, 45);
             this.btnTabPartners.TabIndex = 8;
@@ -212,7 +232,7 @@ namespace LaptopAZ.UI
             this.btnTabStaff.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnTabStaff.Font = new System.Drawing.Font("Segoe UI Semibold", 10.5F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnTabStaff.ForeColor = System.Drawing.Color.White;
-            this.btnTabStaff.Location = new System.Drawing.Point(6, 450);
+            this.btnTabStaff.Location = new System.Drawing.Point(6, 500);
             this.btnTabStaff.Name = "btnTabStaff";
             this.btnTabStaff.Size = new System.Drawing.Size(214, 45);
             this.btnTabStaff.TabIndex = 9;
@@ -323,6 +343,7 @@ namespace LaptopAZ.UI
         private System.Windows.Forms.Button btnTabCategories;
         private System.Windows.Forms.Button btnTabImport;
         private System.Windows.Forms.Button btnTabSales;
+        private System.Windows.Forms.Button btnTabOrders;
         private System.Windows.Forms.Button btnTabReturns;
         private System.Windows.Forms.Button btnTabPartners;
         private System.Windows.Forms.Button btnTabStaff;

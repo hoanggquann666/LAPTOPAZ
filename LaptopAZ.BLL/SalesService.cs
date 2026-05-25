@@ -171,5 +171,268 @@ namespace LaptopAZ.BLL
                 throw new Exception("Lỗi khi tạo hóa đơn: " + ex.Message, ex);
             }
         }
+        /// <summary>
+        /// Đặt hàng trước: Status = Pending. Không trừ kho, không gán serial (transaction).
+        /// Luồng tiếp: Confirmed → ConfirmAndPayOrder (Paid) → Completed.
+        /// </summary>
+        public int CreatePendingOrder(int customerId, int createdBy, decimal discount, List<OrderDetailDTO> details)
+        {
+            if (details == null || !details.Any())
+                throw new ArgumentException("Giỏ hàng rỗng, không thể tạo đơn đặt hàng.");
+
+            _unitOfWork.BeginTransaction();
+            try
+            {
+                string orderCode = "DH-" + DateTime.Now.ToString("yyyyMMdd") + "-" + new Random().Next(1000, 9999);
+                while (_unitOfWork.Orders.Any(o => o.OrderCode == orderCode))
+                    orderCode = "DH-" + DateTime.Now.ToString("yyyyMMdd") + "-" + new Random().Next(1000, 9999);
+
+                decimal totalAmount = details.Sum(d => d.Quantity * d.UnitPrice);
+                decimal finalAmount = totalAmount - discount;
+                if (finalAmount < 0) finalAmount = 0;
+
+                var order = new Order
+                {
+                    OrderCode = orderCode,
+                    CustomerId = customerId,
+                    CreatedBy = createdBy,
+                    OrderDate = DateTime.Now,
+                    TotalAmount = totalAmount,
+                    DiscountAmount = discount,
+                    FinalAmount = finalAmount,
+                    Status = "Pending"
+                };
+                _unitOfWork.Orders.Add(order);
+                _unitOfWork.SaveChanges();
+
+                foreach (var det in details)
+                {
+                    var orderDetail = new OrderDetail
+                    {
+                        OrderId = order.OrderId,
+                        ProductId = det.ProductId,
+                        Quantity = det.Quantity,
+                        UnitPrice = det.UnitPrice
+                    };
+                    _unitOfWork.OrderDetails.Add(orderDetail);
+                }
+
+                _unitOfWork.SaveChanges();
+                _unitOfWork.CommitTransaction();
+                return order.OrderId;
+            }
+            catch (Exception ex)
+            {
+                _unitOfWork.RollbackTransaction();
+                throw new Exception("Lỗi khi tạo đơn đặt hàng: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật trạng thái đơn hàng.
+        /// Luồng: Pending → Confirmed, Confirmed → Paid, Paid → Completed, Pending/Confirmed → Cancelled
+        /// </summary>
+        public bool UpdateOrderStatus(int orderId, string newStatus)
+        {
+            var order = _unitOfWork.Orders.GetById(orderId);
+            if (order == null)
+                throw new Exception("Không tìm thấy đơn hàng.");
+
+            string current = order.Status;
+            bool valid = false;
+            switch (newStatus)
+            {
+                case "Confirmed":
+                    valid = current == "Pending";
+                    break;
+                case "Paid":
+                    valid = current == "Confirmed";
+                    break;
+                case "Completed":
+                    valid = current == "Paid";
+                    break;
+                case "Cancelled":
+                    valid = current == "Pending" || current == "Confirmed";
+                    break;
+            }
+
+            if (!valid)
+                throw new Exception($"Không thể chuyển trạng thái từ '{current}' sang '{newStatus}'.");
+
+            order.Status = newStatus;
+            _unitOfWork.Orders.Update(order);
+            _unitOfWork.SaveChanges();
+            return true;
+        }
+
+        /// <summary>
+        /// Xác nhận đơn đặt hàng Confirmed → Paid: gán serial, trừ kho, ghi log.
+        /// </summary>
+        public bool ConfirmAndPayOrder(int orderId, List<OrderDetailDTO> detailsWithSerials)
+        {
+            var order = _unitOfWork.Orders.GetById(orderId);
+            if (order == null)
+                throw new Exception("Không tìm thấy đơn hàng.");
+            if (order.Status != "Confirmed")
+                throw new Exception($"Đơn hàng phải ở trạng thái 'Confirmed' để thanh toán (hiện tại: '{order.Status}').");
+
+            _unitOfWork.BeginTransaction();
+            try
+            {
+                var existingDetails = _unitOfWork.OrderDetails.Query()
+                    .Where(od => od.OrderId == orderId).ToList();
+
+                foreach (var dbDet in existingDetails)
+                {
+                    var matchDet = detailsWithSerials?.FirstOrDefault(d => d.ProductId == dbDet.ProductId);
+                    if (matchDet == null || matchDet.SerialNumbers.Count != dbDet.Quantity)
+                        throw new Exception($"Chưa chọn đủ serial cho sản phẩm ID {dbDet.ProductId}. Cần {dbDet.Quantity} serial.");
+
+                    var product = _unitOfWork.Products.GetById(dbDet.ProductId);
+                    if (product == null)
+                        throw new Exception($"Không tìm thấy sản phẩm ID {dbDet.ProductId}.");
+                    if (product.QuantityInStock < dbDet.Quantity)
+                        throw new Exception($"'{product.ProductName}' không đủ hàng. Còn: {product.QuantityInStock}");
+
+                    foreach (var serial in matchDet.SerialNumbers)
+                    {
+                        var item = _unitOfWork.ProductItems.GetById(serial);
+                        if (item == null)
+                            throw new Exception($"Không tìm thấy serial '{serial}'.");
+                        if (item.Status != "InStock")
+                            throw new Exception($"Serial '{serial}' không khả dụng (status: {item.Status}).");
+
+                        item.Status = "Sold";
+                        item.OrderDetailId = dbDet.OrderDetailId;
+                        _unitOfWork.ProductItems.Update(item);
+                    }
+
+                    product.QuantityInStock -= dbDet.Quantity;
+                    _unitOfWork.Products.Update(product);
+
+                    var log = new InventoryLog
+                    {
+                        ProductId = dbDet.ProductId,
+                        ChangeType = "EXPORT",
+                        QuantityChanged = -dbDet.Quantity,
+                        ReferenceId = order.OrderId,
+                        Note = $"Xuất kho thanh toán đơn đặt hàng {order.OrderCode}",
+                        CreatedAt = DateTime.Now
+                    };
+                    _unitOfWork.InventoryLogs.Add(log);
+                }
+
+                order.Status = "Paid";
+                _unitOfWork.Orders.Update(order);
+                _unitOfWork.SaveChanges();
+                _unitOfWork.CommitTransaction();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _unitOfWork.RollbackTransaction();
+                throw new Exception("Lỗi xác nhận thanh toán: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
+        /// Hủy đơn: Cancelled. Chỉ hoàn kho + serial khi Status = Paid (tránh double restore).
+        /// Dùng transaction khi cập nhật nhiều bảng.
+        /// </summary>
+        public bool CancelOrder(int orderId, string reason = null)
+        {
+            var order = _unitOfWork.Orders.GetById(orderId);
+            if (order == null)
+                throw new Exception("Không tìm thấy đơn hàng.");
+
+            if (order.Status == "Cancelled")
+                throw new Exception("Đơn hàng đã bị hủy trước đó.");
+            if (order.Status == "Completed")
+                throw new Exception("Không thể hủy đơn hàng đã hoàn thành.");
+
+            _unitOfWork.BeginTransaction();
+            try
+            {
+                bool needRestoreStock = (order.Status == "Paid");
+
+                if (needRestoreStock)
+                {
+                    var details = _unitOfWork.OrderDetails.Query()
+                        .Where(od => od.OrderId == orderId).ToList();
+
+                    foreach (var det in details)
+                    {
+                        var soldItems = _unitOfWork.ProductItems.Find(
+                            pi => pi.OrderDetailId == det.OrderDetailId && pi.Status == "Sold").ToList();
+
+                        foreach (var item in soldItems)
+                        {
+                            item.Status = "InStock";
+                            item.OrderDetailId = null;
+                            _unitOfWork.ProductItems.Update(item);
+                        }
+
+                        var product = _unitOfWork.Products.GetById(det.ProductId);
+                        if (product != null)
+                        {
+                            product.QuantityInStock += det.Quantity;
+                            _unitOfWork.Products.Update(product);
+                        }
+
+                        var log = new InventoryLog
+                        {
+                            ProductId = det.ProductId,
+                            ChangeType = "CANCEL_RESTORE",
+                            QuantityChanged = det.Quantity,
+                            ReferenceId = order.OrderId,
+                            Note = $"Hoàn kho do hủy đơn {order.OrderCode}" + (reason != null ? $". Lý do: {reason}" : ""),
+                            CreatedAt = DateTime.Now
+                        };
+                        _unitOfWork.InventoryLogs.Add(log);
+                    }
+                }
+
+                order.Status = "Cancelled";
+                _unitOfWork.Orders.Update(order);
+                _unitOfWork.SaveChanges();
+                _unitOfWork.CommitTransaction();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _unitOfWork.RollbackTransaction();
+                throw new Exception("Lỗi hủy đơn hàng: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
+        /// Lấy danh sách đơn hàng lọc theo trạng thái.
+        /// </summary>
+        public List<OrderDTO> GetOrdersByStatus(string status)
+        {
+            var query = _unitOfWork.Orders.Query()
+                .Include(o => o.Customer)
+                .Include(o => o.User);
+
+            if (!string.IsNullOrWhiteSpace(status))
+                query = query.Where(o => o.Status == status);
+
+            return query.OrderByDescending(o => o.OrderDate)
+                .Select(o => new OrderDTO
+                {
+                    OrderId = o.OrderId,
+                    OrderCode = o.OrderCode,
+                    CustomerId = o.CustomerId,
+                    CustomerName = o.Customer.CustomerName,
+                    CustomerPhone = o.Customer.Phone,
+                    CreatedBy = o.CreatedBy,
+                    EmployeeName = o.User.FullName,
+                    OrderDate = o.OrderDate,
+                    TotalAmount = o.TotalAmount,
+                    DiscountAmount = o.DiscountAmount,
+                    FinalAmount = o.FinalAmount,
+                    Status = o.Status
+                }).ToList();
+        }
     }
 }

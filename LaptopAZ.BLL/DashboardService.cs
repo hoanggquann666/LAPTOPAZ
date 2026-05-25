@@ -35,6 +35,11 @@ namespace LaptopAZ.BLL
             stats.LowStockCount = _unitOfWork.Products.Count(p => p.QuantityInStock < 3 && p.IsActive);
             stats.ProductsCount = _unitOfWork.Products.Count(p => p.IsActive);
 
+            // Order status counts
+            stats.PendingOrdersCount = _unitOfWork.Orders.Count(o => o.Status == "Pending");
+            stats.CancelledOrdersCount = _unitOfWork.Orders.Count(o => o.Status == "Cancelled");
+            stats.CompletedOrdersCount = _unitOfWork.Orders.Count(o => o.Status == "Completed" || o.Status == "Paid");
+
             // Low stock alerts list
             stats.LowStockAlerts = _unitOfWork.Products.Query()
                 .Where(p => p.QuantityInStock < 3 && p.IsActive)

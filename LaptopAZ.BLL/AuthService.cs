@@ -139,5 +139,17 @@ namespace LaptopAZ.BLL
         {
             return _unitOfWork.Roles.GetAll().ToList();
         }
+
+        /// <summary>
+        /// Soft-delete: vô hiệu hóa tài khoản nhân viên (đặt IsActive = false).
+        /// </summary>
+        public bool DeleteUser(int userId)
+        {
+            var user = _unitOfWork.Users.GetById(userId);
+            if (user == null) return false;
+            user.IsActive = false;
+            _unitOfWork.Users.Update(user);
+            return _unitOfWork.SaveChanges() > 0;
+        }
     }
 }
