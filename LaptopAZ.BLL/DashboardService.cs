@@ -29,7 +29,8 @@ namespace LaptopAZ.BLL
                 .DefaultIfEmpty(0)
                 .Sum() ?? 0;
 
-            stats.OrdersCountToday = _unitOfWork.Orders.Count(o => o.OrderDate >= today && o.OrderDate < tomorrow && o.Status == "Paid");
+            // Chỉ đếm hóa đơn đã hoàn thành trong ngày (sau khi xử lý tại Quản lý đơn)
+            stats.OrdersCountToday = _unitOfWork.Orders.Count(o => o.OrderDate >= today && o.OrderDate < tomorrow && o.Status == "Completed");
 
             // Low Stock threshold: < 3
             stats.LowStockCount = _unitOfWork.Products.Count(p => p.QuantityInStock < 3 && p.IsActive);

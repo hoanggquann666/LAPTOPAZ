@@ -128,7 +128,7 @@ namespace LaptopAZ.BLL
                 string sql = @"
                     SELECT ISNULL(SUM(FinalAmount), 0)
                     FROM Orders
-                    WHERE Status IN ('Paid', 'Completed')
+                    WHERE Status = 'Completed'
                       AND CAST(OrderDate AS DATE) = CAST(GETDATE() AS DATE)";
                 return conn.ExecuteScalar<decimal>(sql);
             }

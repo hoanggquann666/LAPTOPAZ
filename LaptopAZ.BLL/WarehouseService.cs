@@ -43,6 +43,26 @@ namespace LaptopAZ.BLL
                 }).ToList();
         }
 
+        public ImportReceiptDTO GetImportReceiptById(int importReceiptId)
+        {
+            var ir = _unitOfWork.ImportReceipts.Query()
+                .Include(x => x.Supplier)
+                .Include(x => x.User)
+                .FirstOrDefault(x => x.ImportReceiptId == importReceiptId);
+            if (ir == null) return null;
+
+            return new ImportReceiptDTO
+            {
+                ImportReceiptId = ir.ImportReceiptId,
+                SupplierId = ir.SupplierId,
+                SupplierName = ir.Supplier.SupplierName,
+                CreatedBy = ir.CreatedBy,
+                EmployeeName = ir.User.FullName,
+                ImportDate = ir.ImportDate,
+                TotalAmount = ir.TotalAmount
+            };
+        }
+
         public List<ImportReceiptDetailDTO> GetImportReceiptDetails(int importReceiptId)
         {
             return _unitOfWork.ImportReceiptDetails.Query()

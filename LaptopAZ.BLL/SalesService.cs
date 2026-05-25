@@ -172,8 +172,14 @@ namespace LaptopAZ.BLL
             }
         }
         /// <summary>
-        /// Đặt hàng trước: Status = Pending. Không trừ kho, không gán serial (transaction).
-        /// Luồng tiếp: Confirmed → ConfirmAndPayOrder (Paid) → Completed.
+        /// Đơn đặt trước (mã DH-): có bước giao hàng. Mua tại quầy (mã HD-) bỏ qua Shipping/Delivered.
+        /// </summary>
+        private static bool IsPlaceOrderCode(string orderCode) =>
+            !string.IsNullOrEmpty(orderCode) && orderCode.StartsWith("DH-", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Đặt hàng: Pending + giữ serial ở trạng thái Reserved (chưa trừ tồn kho).
+        /// Bắt buộc đã chọn đủ serial và còn đủ hàng trong kho.
         /// </summary>
         public int CreatePendingOrder(int customerId, int createdBy, decimal discount, List<OrderDetailDTO> details)
         {
@@ -207,6 +213,17 @@ namespace LaptopAZ.BLL
 
                 foreach (var det in details)
                 {
+                    if (det.Quantity <= 0)
+                        throw new Exception("Số lượng đặt hàng phải lớn hơn 0.");
+                    if (det.SerialNumbers == null || det.SerialNumbers.Count != det.Quantity)
+                        throw new Exception($"Phải chọn đủ {det.Quantity} serial cho sản phẩm '{det.ProductName}' trước khi đặt hàng.");
+
+                    var product = _unitOfWork.Products.GetById(det.ProductId);
+                    if (product == null)
+                        throw new Exception($"Không tìm thấy sản phẩm ID {det.ProductId}.");
+                    if (product.QuantityInStock < det.Quantity)
+                        throw new Exception($"'{product.ProductName}' không đủ tồn kho (còn {product.QuantityInStock}).");
+
                     var orderDetail = new OrderDetail
                     {
                         OrderId = order.OrderId,
@@ -215,6 +232,20 @@ namespace LaptopAZ.BLL
                         UnitPrice = det.UnitPrice
                     };
                     _unitOfWork.OrderDetails.Add(orderDetail);
+                    _unitOfWork.SaveChanges();
+
+                    foreach (var serial in det.SerialNumbers)
+                    {
+                        var item = _unitOfWork.ProductItems.GetById(serial);
+                        if (item == null)
+                            throw new Exception($"Không tìm thấy serial '{serial}'.");
+                        if (item.Status != "InStock")
+                            throw new Exception($"Serial '{serial}' không khả dụng (trạng thái: {item.Status}).");
+
+                        item.Status = "Reserved";
+                        item.OrderDetailId = orderDetail.OrderDetailId;
+                        _unitOfWork.ProductItems.Update(item);
+                    }
                 }
 
                 _unitOfWork.SaveChanges();
@@ -230,7 +261,8 @@ namespace LaptopAZ.BLL
 
         /// <summary>
         /// Cập nhật trạng thái đơn hàng.
-        /// Luồng: Pending → Confirmed, Confirmed → Paid, Paid → Completed, Pending/Confirmed → Cancelled
+        /// Đặt hàng (DH-): Pending → Confirmed → Paid → Shipping → Delivered → Completed.
+        /// Mua tại quầy (HD-): Paid → Completed.
         /// </summary>
         public bool UpdateOrderStatus(int orderId, string newStatus)
         {
@@ -239,6 +271,7 @@ namespace LaptopAZ.BLL
                 throw new Exception("Không tìm thấy đơn hàng.");
 
             string current = order.Status;
+            bool isPlace = IsPlaceOrderCode(order.OrderCode);
             bool valid = false;
             switch (newStatus)
             {
@@ -248,8 +281,17 @@ namespace LaptopAZ.BLL
                 case "Paid":
                     valid = current == "Confirmed";
                     break;
+                case "Shipping":
+                    valid = current == "Paid" && isPlace;
+                    break;
+                case "Delivered":
+                    valid = current == "Shipping" && isPlace;
+                    break;
                 case "Completed":
-                    valid = current == "Paid";
+                    if (isPlace)
+                        valid = current == "Delivered";
+                    else
+                        valid = current == "Paid";
                     break;
                 case "Cancelled":
                     valid = current == "Pending" || current == "Confirmed";
@@ -284,28 +326,43 @@ namespace LaptopAZ.BLL
 
                 foreach (var dbDet in existingDetails)
                 {
-                    var matchDet = detailsWithSerials?.FirstOrDefault(d => d.ProductId == dbDet.ProductId);
-                    if (matchDet == null || matchDet.SerialNumbers.Count != dbDet.Quantity)
-                        throw new Exception($"Chưa chọn đủ serial cho sản phẩm ID {dbDet.ProductId}. Cần {dbDet.Quantity} serial.");
+                    var reservedItems = _unitOfWork.ProductItems.Find(
+                        pi => pi.OrderDetailId == dbDet.OrderDetailId && pi.Status == "Reserved").ToList();
+
+                    if (reservedItems.Count == dbDet.Quantity)
+                    {
+                        // Serial đã chọn lúc đặt hàng — chuyển Reserved → Sold và trừ kho
+                        foreach (var item in reservedItems)
+                        {
+                            item.Status = "Sold";
+                            _unitOfWork.ProductItems.Update(item);
+                        }
+                    }
+                    else
+                    {
+                        var matchDet = detailsWithSerials?.FirstOrDefault(d => d.ProductId == dbDet.ProductId);
+                        if (matchDet == null || matchDet.SerialNumbers.Count != dbDet.Quantity)
+                            throw new Exception($"Chưa chọn đủ serial cho sản phẩm ID {dbDet.ProductId}. Cần {dbDet.Quantity} serial.");
+
+                        foreach (var serial in matchDet.SerialNumbers)
+                        {
+                            var item = _unitOfWork.ProductItems.GetById(serial);
+                            if (item == null)
+                                throw new Exception($"Không tìm thấy serial '{serial}'.");
+                            if (item.Status != "InStock")
+                                throw new Exception($"Serial '{serial}' không khả dụng (status: {item.Status}).");
+
+                            item.Status = "Sold";
+                            item.OrderDetailId = dbDet.OrderDetailId;
+                            _unitOfWork.ProductItems.Update(item);
+                        }
+                    }
 
                     var product = _unitOfWork.Products.GetById(dbDet.ProductId);
                     if (product == null)
                         throw new Exception($"Không tìm thấy sản phẩm ID {dbDet.ProductId}.");
                     if (product.QuantityInStock < dbDet.Quantity)
                         throw new Exception($"'{product.ProductName}' không đủ hàng. Còn: {product.QuantityInStock}");
-
-                    foreach (var serial in matchDet.SerialNumbers)
-                    {
-                        var item = _unitOfWork.ProductItems.GetById(serial);
-                        if (item == null)
-                            throw new Exception($"Không tìm thấy serial '{serial}'.");
-                        if (item.Status != "InStock")
-                            throw new Exception($"Serial '{serial}' không khả dụng (status: {item.Status}).");
-
-                        item.Status = "Sold";
-                        item.OrderDetailId = dbDet.OrderDetailId;
-                        _unitOfWork.ProductItems.Update(item);
-                    }
 
                     product.QuantityInStock -= dbDet.Quantity;
                     _unitOfWork.Products.Update(product);
@@ -353,13 +410,25 @@ namespace LaptopAZ.BLL
             _unitOfWork.BeginTransaction();
             try
             {
+                var details = _unitOfWork.OrderDetails.Query()
+                    .Where(od => od.OrderId == orderId).ToList();
+
+                foreach (var det in details)
+                {
+                    var reservedItems = _unitOfWork.ProductItems.Find(
+                        pi => pi.OrderDetailId == det.OrderDetailId && pi.Status == "Reserved").ToList();
+                    foreach (var item in reservedItems)
+                    {
+                        item.Status = "InStock";
+                        item.OrderDetailId = null;
+                        _unitOfWork.ProductItems.Update(item);
+                    }
+                }
+
                 bool needRestoreStock = (order.Status == "Paid");
 
                 if (needRestoreStock)
                 {
-                    var details = _unitOfWork.OrderDetails.Query()
-                        .Where(od => od.OrderId == orderId).ToList();
-
                     foreach (var det in details)
                     {
                         var soldItems = _unitOfWork.ProductItems.Find(
@@ -403,6 +472,88 @@ namespace LaptopAZ.BLL
                 _unitOfWork.RollbackTransaction();
                 throw new Exception("Lỗi hủy đơn hàng: " + ex.Message, ex);
             }
+        }
+
+        /// <summary>
+        /// Xóa một dòng chi tiết khỏi đơn Pending/Confirmed; giải phóng serial Reserved.
+        /// </summary>
+        public bool RemoveOrderDetailLine(int orderId, int orderDetailId)
+        {
+            var order = _unitOfWork.Orders.GetById(orderId);
+            if (order == null)
+                throw new Exception("Không tìm thấy đơn hàng.");
+            if (order.Status != "Pending" && order.Status != "Confirmed")
+                throw new Exception("Chỉ được xóa dòng khi đơn ở trạng thái Pending hoặc Confirmed.");
+
+            var detail = _unitOfWork.OrderDetails.GetById(orderDetailId);
+            if (detail == null || detail.OrderId != orderId)
+                throw new Exception("Không tìm thấy dòng chi tiết trong đơn hàng.");
+
+            _unitOfWork.BeginTransaction();
+            try
+            {
+                var reservedItems = _unitOfWork.ProductItems.Find(
+                    pi => pi.OrderDetailId == orderDetailId && pi.Status == "Reserved").ToList();
+                foreach (var item in reservedItems)
+                {
+                    item.Status = "InStock";
+                    item.OrderDetailId = null;
+                    _unitOfWork.ProductItems.Update(item);
+                }
+
+                _unitOfWork.OrderDetails.Remove(detail);
+
+                var remaining = _unitOfWork.OrderDetails.Query().Where(od => od.OrderId == orderId).ToList();
+                order.TotalAmount = remaining.Sum(d => d.Quantity * d.UnitPrice);
+                order.FinalAmount = order.TotalAmount - order.DiscountAmount;
+                if (order.FinalAmount < 0) order.FinalAmount = 0;
+                _unitOfWork.Orders.Update(order);
+
+                _unitOfWork.SaveChanges();
+                _unitOfWork.CommitTransaction();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _unitOfWork.RollbackTransaction();
+                throw new Exception("Lỗi xóa dòng đơn hàng: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
+        /// Hóa đơn đã hoàn thành — dùng cho lịch sử in và đếm dashboard.
+        /// </summary>
+        public List<OrderDTO> GetCompletedOrders(string search = null)
+        {
+            var query = _unitOfWork.Orders.Query()
+                .Include(o => o.Customer)
+                .Include(o => o.User)
+                .Where(o => o.Status == "Completed");
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.ToLower();
+                query = query.Where(o => o.OrderCode.ToLower().Contains(search) ||
+                                         o.Customer.CustomerName.ToLower().Contains(search) ||
+                                         o.Customer.Phone.Contains(search));
+            }
+
+            return query.OrderByDescending(o => o.OrderDate)
+                .Select(o => new OrderDTO
+                {
+                    OrderId = o.OrderId,
+                    OrderCode = o.OrderCode,
+                    CustomerId = o.CustomerId,
+                    CustomerName = o.Customer.CustomerName,
+                    CustomerPhone = o.Customer.Phone,
+                    CreatedBy = o.CreatedBy,
+                    EmployeeName = o.User.FullName,
+                    OrderDate = o.OrderDate,
+                    TotalAmount = o.TotalAmount,
+                    DiscountAmount = o.DiscountAmount,
+                    FinalAmount = o.FinalAmount,
+                    Status = o.Status
+                }).ToList();
         }
 
         /// <summary>
