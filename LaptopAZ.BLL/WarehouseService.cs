@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
 using LaptopAZ.DTO;
+using LaptopAZ.Helpers;
 using LaptopAZ.Models;
 using LaptopAZ.Repository;
 
@@ -101,6 +102,7 @@ namespace LaptopAZ.BLL
         /// </summary>
         public bool CreateImportReceipt(int supplierId, int createdBy, List<ImportReceiptDetailDTO> details)
         {
+            RolePermissions.EnsureCanMutateBusinessData();
             if (details == null || !details.Any())
                 return false;
 

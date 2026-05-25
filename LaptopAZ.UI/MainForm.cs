@@ -538,8 +538,9 @@ namespace LaptopAZ.UI
                 // Check if CellPainting has not been configured/hooked for status pills.
                 // Note: lowStock / bestSeller grids have their own specific cell paintings.
                 // For other grids, let's attach status pill cell painting.
-                if (grid.Name != "gridLow" && grid.Name != "gridBest")
+                if (grid.Name != "gridLow" && grid.Name != "gridBest" && grid.Tag as string != "StatusPillAttached")
                 {
+                    grid.Tag = "StatusPillAttached";
                     grid.CellPainting += (s, e) => {
                         if (e.RowIndex < 0) return;
 
@@ -1726,6 +1727,12 @@ namespace LaptopAZ.UI
             btnDeleteProduct.Width = 120;
             btnDeleteProduct.Height = 30;
             btnDeleteProduct.Click += (s, ev) => {
+                if (!RolePermissions.CanManageProducts)
+                {
+                    MessageBox.Show("Tài khoản không có quyền xóa sản phẩm.", "Từ chối",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
                 if (_gridProducts.SelectedRows.Count == 0)
                 {
                     MessageBox.Show("Vui lòng chọn một sản phẩm trong danh sách trước khi xóa.",
@@ -1758,6 +1765,10 @@ namespace LaptopAZ.UI
                     }
                     LoadProductsGrid();
                     ResetProductEditor();
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    MessageBox.Show(ex.Message, "Từ chối", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
                 catch (Exception ex)
                 {
@@ -2240,6 +2251,10 @@ namespace LaptopAZ.UI
                     MessageBox.Show("Không thể lưu sản phẩm. Có thể Mã Sản Phẩm đã bị trùng lặp.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                MessageBox.Show(ex.Message, "Từ chối", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
             catch (Exception ex)
             {
                 MessageBox.Show("Lỗi: " + ex.Message, "Lỗi hệ thống", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -2698,6 +2713,12 @@ namespace LaptopAZ.UI
 
         private void ShowStaffView()
         {
+            if (!RolePermissions.CanAccessTab("Staff"))
+            {
+                MessageBox.Show("Tài khoản không có quyền quản lý nhân viên.", "Từ chối truy cập",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             ClearContainer();
 
             var mainLayout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 2 };
@@ -4846,8 +4867,13 @@ namespace LaptopAZ.UI
                         BackColor = Color.White,
                         BorderStyle = BorderStyle.FixedSingle
                     };
+                    var serialByIndex = new Dictionary<int, string>();
+                    int serialIdx = 0;
                     foreach (var row in serialRows)
+                    {
                         clb.Items.Add($"{row.ProductName} | {row.ProductCode} | {row.Serial}", false);
+                        serialByIndex[serialIdx++] = row.Serial;
+                    }
 
                     var btnOk = CreatePremiumButton("Xác nhận xóa", Color.FromArgb(239, 68, 68), Color.White);
                     btnOk.Location = new Point(12, 328);
@@ -4859,25 +4885,31 @@ namespace LaptopAZ.UI
 
                     btnOk.Click += (s2, e2) =>
                     {
-                        var selected = new List<string>();
-                        foreach (int idx in clb.CheckedIndices)
+                        try
                         {
-                            var parts = clb.Items[idx].ToString().Split('|');
-                            if (parts.Length >= 3)
-                                selected.Add(parts[parts.Length - 1].Trim());
-                        }
-                        if (!selected.Any())
-                        {
-                            MessageBox.Show("Vui lòng chọn ít nhất một serial.", "Chưa chọn", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            return;
-                        }
-                        var confirm = MessageBox.Show(
-                            $"Xóa {selected.Count} serial khỏi đơn?\nTổng tiền đơn sẽ được tính lại.",
-                            "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                        if (confirm != DialogResult.Yes) return;
+                            var selected = new List<string>();
+                            foreach (int idx in clb.CheckedIndices)
+                            {
+                                if (serialByIndex.TryGetValue(idx, out string serialVal) && !string.IsNullOrWhiteSpace(serialVal))
+                                    selected.Add(serialVal.Trim());
+                            }
+                            if (!selected.Any())
+                            {
+                                MessageBox.Show("Vui lòng chọn ít nhất một serial.", "Chưa chọn", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                return;
+                            }
+                            var confirm = MessageBox.Show(
+                                $"Xóa {selected.Count} serial khỏi đơn?\nTổng tiền đơn sẽ được tính lại.",
+                                "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                            if (confirm != DialogResult.Yes) return;
 
-                        _salesService.RemoveOrderSerials(orderId, selected);
-                        dlg.DialogResult = DialogResult.OK;
+                            _salesService.RemoveOrderSerials(orderId, selected);
+                            dlg.DialogResult = DialogResult.OK;
+                        }
+                        catch (Exception exOk)
+                        {
+                            MessageBox.Show(exOk.Message, "Lỗi xóa mặt hàng", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
                     };
 
                     dlg.Controls.Add(lblHint);

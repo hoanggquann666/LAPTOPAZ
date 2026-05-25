@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
 using LaptopAZ.DTO;
+using LaptopAZ.Helpers;
 using LaptopAZ.Models;
 using LaptopAZ.Repository;
 
@@ -44,6 +45,7 @@ namespace LaptopAZ.BLL
         /// </summary>
         public bool CreateReturn(int orderId, int createdBy, string reason, List<string> serialNumbers)
         {
+            RolePermissions.EnsureCanMutateBusinessData();
             if (serialNumbers == null || !serialNumbers.Any())
                 throw new ArgumentException("Danh sách số Serial trả hàng rỗng.");
             if (string.IsNullOrWhiteSpace(reason))

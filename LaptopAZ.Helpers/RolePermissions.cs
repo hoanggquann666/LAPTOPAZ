@@ -1,3 +1,5 @@
+using System;
+
 namespace LaptopAZ.Helpers
 {
     /// <summary>
@@ -45,12 +47,24 @@ namespace LaptopAZ.Helpers
                 case "Returns":
                     return IsAdmin || IsSalesStaff || IsAccountant;
                 case "Partners":
-                    return IsAdmin || IsSalesStaff || IsWarehouseStaff || IsAccountant;
+                    return IsAdmin || IsSalesStaff || IsWarehouseStaff;
                 case "Staff":
                     return IsAdmin;
                 default:
                     return false;
             }
+        }
+
+        public static void EnsureCanManageProducts()
+        {
+            if (!CanManageProducts)
+                throw new UnauthorizedAccessException("Tài khoản không có quyền thêm/sửa/xóa sản phẩm.");
+        }
+
+        public static void EnsureCanMutateBusinessData()
+        {
+            if (IsViewOnly)
+                throw new UnauthorizedAccessException("Kế toán chỉ được xem dữ liệu, không thao tác thay đổi.");
         }
     }
 }

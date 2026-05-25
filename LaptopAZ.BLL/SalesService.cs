@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
 using LaptopAZ.DTO;
+using LaptopAZ.Helpers;
 using LaptopAZ.Models;
 using LaptopAZ.Repository;
 
@@ -73,6 +74,7 @@ namespace LaptopAZ.BLL
         /// </summary>
         public bool CreateOrder(int customerId, int createdBy, decimal discount, List<OrderDetailDTO> details)
         {
+            RolePermissions.EnsureCanMutateBusinessData();
             if (details == null || !details.Any())
                 throw new ArgumentException("Giỏ hàng rỗng, không thể tạo hóa đơn.");
 
@@ -184,6 +186,7 @@ namespace LaptopAZ.BLL
         /// </summary>
         public int CreatePendingOrder(int customerId, int createdBy, decimal discount, List<OrderDetailDTO> details)
         {
+            RolePermissions.EnsureCanMutateBusinessData();
             if (details == null || !details.Any())
                 throw new ArgumentException("Giỏ hàng rỗng, không thể tạo đơn đặt hàng.");
 
@@ -267,6 +270,7 @@ namespace LaptopAZ.BLL
         /// </summary>
         public bool UpdateOrderStatus(int orderId, string newStatus)
         {
+            RolePermissions.EnsureCanMutateBusinessData();
             var order = _unitOfWork.Orders.GetById(orderId);
             if (order == null)
                 throw new Exception("Không tìm thấy đơn hàng.");
@@ -313,6 +317,7 @@ namespace LaptopAZ.BLL
         /// </summary>
         public bool ConfirmAndPayOrder(int orderId, List<OrderDetailDTO> detailsWithSerials)
         {
+            RolePermissions.EnsureCanMutateBusinessData();
             var order = _unitOfWork.Orders.GetById(orderId);
             if (order == null)
                 throw new Exception("Không tìm thấy đơn hàng.");
@@ -399,6 +404,7 @@ namespace LaptopAZ.BLL
         /// </summary>
         public bool CancelOrder(int orderId, string reason = null)
         {
+            RolePermissions.EnsureCanMutateBusinessData();
             var order = _unitOfWork.Orders.GetById(orderId);
             if (order == null)
                 throw new Exception("Không tìm thấy đơn hàng.");
@@ -480,6 +486,8 @@ namespace LaptopAZ.BLL
         /// </summary>
         public bool RemoveOrderSerials(int orderId, List<string> serialNumbers)
         {
+            RolePermissions.EnsureCanMutateBusinessData();
+
             if (serialNumbers == null || !serialNumbers.Any())
                 throw new Exception("Chưa chọn serial nào để xóa.");
 
@@ -489,33 +497,65 @@ namespace LaptopAZ.BLL
             if (order.Status != "Pending" && order.Status != "Confirmed")
                 throw new Exception("Chỉ được xóa mặt hàng khi đơn ở trạng thái Pending hoặc Confirmed.");
 
-            var distinctSerials = serialNumbers.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).Distinct().ToList();
+            var distinctSerials = serialNumbers.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+            // Pre-validate toàn bộ serial trước khi ghi DB (tránh rollback giữa chừng do lỗi serial thứ N)
+            var itemsToRelease = new List<ProductItem>();
+            var affectedDetailIds = new HashSet<int>();
+            foreach (var serial in distinctSerials)
+            {
+                var item = _unitOfWork.ProductItems.GetById(serial);
+                if (item == null)
+                    throw new Exception($"Không tìm thấy serial '{serial}'.");
+
+                if (item.Status != "Reserved" || !item.OrderDetailId.HasValue)
+                    throw new Exception($"Serial '{serial}' không thuộc đơn đang giữ (Reserved).");
+
+                var detail = _unitOfWork.OrderDetails.GetById(item.OrderDetailId.Value);
+                if (detail == null || detail.OrderId != orderId)
+                    throw new Exception($"Serial '{serial}' không thuộc đơn hàng này.");
+
+                itemsToRelease.Add(item);
+                affectedDetailIds.Add(detail.OrderDetailId);
+            }
 
             _unitOfWork.BeginTransaction();
             try
             {
-                foreach (var serial in distinctSerials)
+                foreach (var item in itemsToRelease)
                 {
-                    var item = _unitOfWork.ProductItems.GetById(serial);
-                    if (item == null)
-                        throw new Exception($"Không tìm thấy serial '{serial}'.");
-
-                    if (item.Status != "Reserved" || !item.OrderDetailId.HasValue)
-                        throw new Exception($"Serial '{serial}' không thuộc đơn đang giữ (Reserved).");
-
-                    var detail = _unitOfWork.OrderDetails.GetById(item.OrderDetailId.Value);
-                    if (detail == null || detail.OrderId != orderId)
-                        throw new Exception($"Serial '{serial}' không thuộc đơn hàng này.");
-
                     item.Status = "InStock";
                     item.OrderDetailId = null;
                     _unitOfWork.ProductItems.Update(item);
 
-                    detail.Quantity -= 1;
-                    if (detail.Quantity <= 0)
+                    var log = new InventoryLog
+                    {
+                        ProductId = item.ProductId,
+                        ChangeType = "ORDER_LINE_REMOVE",
+                        QuantityChanged = 0,
+                        ReferenceId = orderId,
+                        Note = $"Giải phóng serial {item.SerialNumber} khỏi đơn {order.OrderCode}",
+                        CreatedAt = DateTime.Now
+                    };
+                    _unitOfWork.InventoryLogs.Add(log);
+                }
+
+                // Đồng bộ Quantity từng dòng theo số serial Reserved còn lại (tránh lệch Quantity vs serial)
+                foreach (var detailId in affectedDetailIds)
+                {
+                    var detail = _unitOfWork.OrderDetails.GetById(detailId);
+                    if (detail == null) continue;
+
+                    int reservedLeft = _unitOfWork.ProductItems.Count(pi =>
+                        pi.OrderDetailId == detailId && pi.Status == "Reserved");
+
+                    if (reservedLeft <= 0)
                         _unitOfWork.OrderDetails.Remove(detail);
                     else
+                    {
+                        detail.Quantity = reservedLeft;
                         _unitOfWork.OrderDetails.Update(detail);
+                    }
                 }
 
                 var remaining = _unitOfWork.OrderDetails.Query().Where(od => od.OrderId == orderId).ToList();
@@ -545,6 +585,8 @@ namespace LaptopAZ.BLL
         /// </summary>
         public bool RemoveOrderDetailLine(int orderId, int orderDetailId)
         {
+            RolePermissions.EnsureCanMutateBusinessData();
+
             var order = _unitOfWork.Orders.GetById(orderId);
             if (order == null)
                 throw new Exception("Không tìm thấy đơn hàng.");
@@ -571,6 +613,8 @@ namespace LaptopAZ.BLL
 
                 var remaining = _unitOfWork.OrderDetails.Query().Where(od => od.OrderId == orderId).ToList();
                 order.TotalAmount = remaining.Sum(d => d.Quantity * d.UnitPrice);
+                if (order.DiscountAmount > order.TotalAmount)
+                    order.DiscountAmount = order.TotalAmount;
                 order.FinalAmount = order.TotalAmount - order.DiscountAmount;
                 if (order.FinalAmount < 0) order.FinalAmount = 0;
                 _unitOfWork.Orders.Update(order);

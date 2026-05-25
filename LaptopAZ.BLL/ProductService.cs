@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
 using LaptopAZ.DTO;
+using LaptopAZ.Helpers;
 using LaptopAZ.Models;
 using LaptopAZ.Repository;
 
@@ -192,6 +193,7 @@ namespace LaptopAZ.BLL
 
         public bool CreateProduct(ProductDTO dto)
         {
+            RolePermissions.EnsureCanManageProducts();
             if (dto == null) return false;
             // Validations
             if (string.IsNullOrWhiteSpace(dto.ProductCode) || string.IsNullOrWhiteSpace(dto.ProductName)) return false;
@@ -226,6 +228,7 @@ namespace LaptopAZ.BLL
 
         public bool UpdateProduct(ProductDTO dto)
         {
+            RolePermissions.EnsureCanManageProducts();
             if (dto == null) return false;
             if (string.IsNullOrWhiteSpace(dto.ProductName)) return false;
             if (dto.ImportPrice <= 0 || dto.SalePrice <= 0) return false;
@@ -256,6 +259,8 @@ namespace LaptopAZ.BLL
         /// </summary>
         public string DeleteProduct(int productId)
         {
+            RolePermissions.EnsureCanManageProducts();
+
             var product = _unitOfWork.Products.GetById(productId);
             if (product == null)
                 return "NOT_FOUND";
@@ -264,25 +269,43 @@ namespace LaptopAZ.BLL
                 pi.ProductId == productId && (pi.Status == "Sold" || pi.Status == "Reserved")))
                 return "HAS_ACTIVE_ITEMS";
 
-            if (_unitOfWork.OrderDetails.Any(od => od.ProductId == productId))
+            _unitOfWork.BeginTransaction();
+            try
             {
-                product.IsActive = false;
-                _unitOfWork.Products.Update(product);
+                bool hasHistory =
+                    _unitOfWork.OrderDetails.Any(od => od.ProductId == productId) ||
+                    _unitOfWork.ImportReceiptDetails.Any(ird => ird.ProductId == productId);
+
+                if (hasHistory)
+                {
+                    product.IsActive = false;
+                    _unitOfWork.Products.Update(product);
+                    _unitOfWork.SaveChanges();
+                    _unitOfWork.CommitTransaction();
+                    return "SOFT_DELETED";
+                }
+
+                var items = _unitOfWork.ProductItems.Find(pi => pi.ProductId == productId).ToList();
+                foreach (var item in items)
+                {
+                    if (item.Status == "Sold" || item.Status == "Reserved")
+                    {
+                        _unitOfWork.RollbackTransaction();
+                        return "HAS_ACTIVE_ITEMS";
+                    }
+                    _unitOfWork.ProductItems.Remove(item);
+                }
+
+                _unitOfWork.Products.Remove(product);
                 _unitOfWork.SaveChanges();
-                return "SOFT_DELETED";
+                _unitOfWork.CommitTransaction();
+                return "DELETED";
             }
-
-            var items = _unitOfWork.ProductItems.Find(pi => pi.ProductId == productId).ToList();
-            foreach (var item in items)
+            catch
             {
-                if (item.Status == "Sold" || item.Status == "Reserved")
-                    return "HAS_ACTIVE_ITEMS";
-                _unitOfWork.ProductItems.Remove(item);
+                _unitOfWork.RollbackTransaction();
+                throw;
             }
-
-            _unitOfWork.Products.Remove(product);
-            _unitOfWork.SaveChanges();
-            return "DELETED";
         }
         #endregion
 
