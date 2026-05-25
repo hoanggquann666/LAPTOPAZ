@@ -60,6 +60,7 @@ namespace LaptopAZ.BLL
                     OrderDetailId = od.OrderDetailId,
                     OrderId = od.OrderId,
                     ProductId = od.ProductId,
+                    ProductCode = od.Product.ProductCode,
                     ProductName = od.Product.ProductName,
                     Quantity = od.Quantity,
                     UnitPrice = od.UnitPrice,
@@ -471,6 +472,71 @@ namespace LaptopAZ.BLL
             {
                 _unitOfWork.RollbackTransaction();
                 throw new Exception("Lỗi hủy đơn hàng: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
+        /// Xóa các serial đã chọn khỏi đơn Pending/Confirmed; cập nhật số lượng dòng & tổng tiền.
+        /// </summary>
+        public bool RemoveOrderSerials(int orderId, List<string> serialNumbers)
+        {
+            if (serialNumbers == null || !serialNumbers.Any())
+                throw new Exception("Chưa chọn serial nào để xóa.");
+
+            var order = _unitOfWork.Orders.GetById(orderId);
+            if (order == null)
+                throw new Exception("Không tìm thấy đơn hàng.");
+            if (order.Status != "Pending" && order.Status != "Confirmed")
+                throw new Exception("Chỉ được xóa mặt hàng khi đơn ở trạng thái Pending hoặc Confirmed.");
+
+            var distinctSerials = serialNumbers.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).Distinct().ToList();
+
+            _unitOfWork.BeginTransaction();
+            try
+            {
+                foreach (var serial in distinctSerials)
+                {
+                    var item = _unitOfWork.ProductItems.GetById(serial);
+                    if (item == null)
+                        throw new Exception($"Không tìm thấy serial '{serial}'.");
+
+                    if (item.Status != "Reserved" || !item.OrderDetailId.HasValue)
+                        throw new Exception($"Serial '{serial}' không thuộc đơn đang giữ (Reserved).");
+
+                    var detail = _unitOfWork.OrderDetails.GetById(item.OrderDetailId.Value);
+                    if (detail == null || detail.OrderId != orderId)
+                        throw new Exception($"Serial '{serial}' không thuộc đơn hàng này.");
+
+                    item.Status = "InStock";
+                    item.OrderDetailId = null;
+                    _unitOfWork.ProductItems.Update(item);
+
+                    detail.Quantity -= 1;
+                    if (detail.Quantity <= 0)
+                        _unitOfWork.OrderDetails.Remove(detail);
+                    else
+                        _unitOfWork.OrderDetails.Update(detail);
+                }
+
+                var remaining = _unitOfWork.OrderDetails.Query().Where(od => od.OrderId == orderId).ToList();
+                if (!remaining.Any())
+                    throw new Exception("Đơn hàng phải còn ít nhất một mặt hàng.");
+
+                order.TotalAmount = remaining.Sum(d => d.Quantity * d.UnitPrice);
+                if (order.DiscountAmount > order.TotalAmount)
+                    order.DiscountAmount = order.TotalAmount;
+                order.FinalAmount = order.TotalAmount - order.DiscountAmount;
+                if (order.FinalAmount < 0) order.FinalAmount = 0;
+                _unitOfWork.Orders.Update(order);
+
+                _unitOfWork.SaveChanges();
+                _unitOfWork.CommitTransaction();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _unitOfWork.RollbackTransaction();
+                throw new Exception("Lỗi xóa mặt hàng khỏi đơn: " + ex.Message, ex);
             }
         }
 

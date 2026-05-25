@@ -250,6 +250,40 @@ namespace LaptopAZ.BLL
             _unitOfWork.Products.Update(product);
             return _unitOfWork.SaveChanges() > 0;
         }
+
+        /// <summary>
+        /// Xóa sản phẩm: soft-delete (IsActive=false) nếu còn ràng buộc; không xóa khi còn serial Sold/Reserved.
+        /// </summary>
+        public string DeleteProduct(int productId)
+        {
+            var product = _unitOfWork.Products.GetById(productId);
+            if (product == null)
+                return "NOT_FOUND";
+
+            if (_unitOfWork.ProductItems.Any(pi =>
+                pi.ProductId == productId && (pi.Status == "Sold" || pi.Status == "Reserved")))
+                return "HAS_ACTIVE_ITEMS";
+
+            if (_unitOfWork.OrderDetails.Any(od => od.ProductId == productId))
+            {
+                product.IsActive = false;
+                _unitOfWork.Products.Update(product);
+                _unitOfWork.SaveChanges();
+                return "SOFT_DELETED";
+            }
+
+            var items = _unitOfWork.ProductItems.Find(pi => pi.ProductId == productId).ToList();
+            foreach (var item in items)
+            {
+                if (item.Status == "Sold" || item.Status == "Reserved")
+                    return "HAS_ACTIVE_ITEMS";
+                _unitOfWork.ProductItems.Remove(item);
+            }
+
+            _unitOfWork.Products.Remove(product);
+            _unitOfWork.SaveChanges();
+            return "DELETED";
+        }
         #endregion
 
         #region Suppliers

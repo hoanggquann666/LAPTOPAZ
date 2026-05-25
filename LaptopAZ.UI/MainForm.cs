@@ -25,6 +25,7 @@ namespace LaptopAZ.UI
 
         private Timer _clockTimer;
         private Button _currentActiveTabButton;
+        private Guna2Button _btnNewInventory;
 
         public MainForm(IUnitOfWork unitOfWork)
         {
@@ -267,17 +268,17 @@ namespace LaptopAZ.UI
                 }
             };
 
-            // Bell Icon
+            // Bell Icon — kích thước cố định để không bị cắt trên mọi role
             Label lblBell = new Label();
             lblBell.Text = "🔔";
-            lblBell.Font = new Font("Segoe UI", 12F);
+            lblBell.Font = new Font("Segoe UI", 14F);
             lblBell.ForeColor = Color.FromArgb(100, 116, 139);
-            lblBell.Size = new Size(32, 32);
-            lblBell.AutoSize = true;
-            lblBell.Padding = new Padding(0, 2, 0, 0);
+            lblBell.Size = new Size(36, 36);
+            lblBell.AutoSize = false;
+            lblBell.TextAlign = ContentAlignment.MiddleCenter;
             lblBell.Cursor = Cursors.Hand;
             lblBell.Anchor = AnchorStyles.None;
-            lblBell.Margin = new Padding(10, 28, 10, 28);
+            lblBell.Margin = new Padding(8, 22, 8, 22);
             lblBell.Click += (s, ev) => {
                 try
                 {
@@ -340,15 +341,17 @@ namespace LaptopAZ.UI
                 }
             };
 
-            // Nút nhanh thêm tồn kho — chỉ Admin, đặt dưới cùng sidebar để không che tab
-            var btnNewInventory = CreatePremiumButton("+ New Inventory", Color.FromArgb(0, 82, 204), Color.White);
-            btnNewInventory.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            btnNewInventory.Name = "btnNewInventory";
-            btnNewInventory.Size = new Size(190, 40);
-            btnNewInventory.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnNewInventory.Location = new Point(15, panelSidebar.Height - 55);
-            btnNewInventory.Visible = SessionHelper.CurrentRole == "Admin";
-            btnNewInventory.Click += (s, ev) => {
+            // Nút nhanh thêm tồn kho — NV kho dùng; Admin thấy nhưng disabled
+            _btnNewInventory = CreatePremiumButton("+ New Inventory", Color.FromArgb(0, 82, 204), Color.White);
+            _btnNewInventory.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            _btnNewInventory.Name = "btnNewInventory";
+            _btnNewInventory.Size = new Size(190, 40);
+            _btnNewInventory.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            _btnNewInventory.Location = new Point(15, panelSidebar.Height - 55);
+            _btnNewInventory.Visible = RolePermissions.IsAdmin || RolePermissions.IsWarehouseStaff;
+            _btnNewInventory.Enabled = RolePermissions.CanUseNewInventory;
+            _btnNewInventory.Click += (s, ev) => {
+                if (!RolePermissions.CanUseNewInventory) return;
                 if (_currentActiveTabButton != btnTabProducts)
                 {
                     SetActiveTab(btnTabProducts, "Danh sách Sản Phẩm");
@@ -363,11 +366,11 @@ namespace LaptopAZ.UI
                     if (lblEdTitle != null) lblEdTitle.Text = "📝 THÊM MỚI LAPTOP";
                 }
             };
-            panelSidebar.Controls.Add(btnNewInventory);
-            btnNewInventory.BringToFront();
+            panelSidebar.Controls.Add(_btnNewInventory);
+            _btnNewInventory.BringToFront();
             panelSidebar.Resize += (s, ev) => {
-                if (btnNewInventory.Visible)
-                    btnNewInventory.Location = new Point(15, Math.Max(90, panelSidebar.ClientSize.Height - btnNewInventory.Height - 12));
+                if (_btnNewInventory.Visible)
+                    _btnNewInventory.Location = new Point(15, Math.Max(90, panelSidebar.ClientSize.Height - _btnNewInventory.Height - 12));
             };
 
             // Add bottom employee card in Sidebar
@@ -569,10 +572,13 @@ namespace LaptopAZ.UI
 
                                 e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-                                int pillWidth = 110;
-                                int pillHeight = 22;
-                                int px = e.CellBounds.Left + (e.CellBounds.Width - pillWidth) / 2;
-                                int py = e.CellBounds.Top + (e.CellBounds.Height - pillHeight) / 2;
+                                using (var font = new Font("Segoe UI Semibold", 8F, FontStyle.Bold))
+                                {
+                                    var sz = e.Graphics.MeasureString(statusText, font);
+                                    int pillHeight = 22;
+                                    int pillWidth = Math.Max(pillHeight + 8, (int)sz.Width + 20);
+                                    int px = e.CellBounds.Left + Math.Max(4, (e.CellBounds.Width - pillWidth) / 2);
+                                    int py = e.CellBounds.Top + (e.CellBounds.Height - pillHeight) / 2;
 
                                 using (var path = new System.Drawing.Drawing2D.GraphicsPath())
                                 {
@@ -585,11 +591,10 @@ namespace LaptopAZ.UI
                                     }
                                 }
 
-                                using (var font = new Font("Segoe UI Semibold", 8F, FontStyle.Bold))
                                 using (var brush = new SolidBrush(textPill))
                                 {
-                                    var sz = e.Graphics.MeasureString(statusText, font);
-                                    e.Graphics.DrawString(statusText, font, brush, px + (pillWidth - sz.Width)/2, py + (pillHeight - sz.Height)/2 - 1);
+                                    e.Graphics.DrawString(statusText, font, brush, px + (pillWidth - sz.Width) / 2, py + (pillHeight - sz.Height) / 2 - 1);
+                                }
                                 }
 
                                 e.Handled = true;
@@ -621,25 +626,24 @@ namespace LaptopAZ.UI
         private void ConfigurePermissions()
         {
             string role = SessionHelper.CurrentRole;
-            if (role == "Admin")
+            if (role == RolePermissions.Admin)
             {
-                // Full permission, keep all buttons visible
+                // Full tabs; quyền CRUD sản phẩm xử lý trong từng view
             }
-            else if (role == "WarehouseStaff")
+            else if (role == RolePermissions.WarehouseStaff)
             {
-                // Kho: ẩn bán hàng, đơn hàng, đổi trả, nhân viên, dashboard
                 btnTabDashboard.Visible = false;
                 btnTabSales.Visible = false;
                 btnTabOrders.Visible = false;
                 btnTabReturns.Visible = false;
                 btnTabStaff.Visible = false;
-                
+
                 btnTabProducts.Location = new Point(6, 100);
                 btnTabCategories.Location = new Point(6, 150);
                 btnTabImport.Location = new Point(6, 200);
                 btnTabPartners.Location = new Point(6, 250);
             }
-            else if (role == "SalesStaff")
+            else if (role == RolePermissions.SalesStaff)
             {
                 btnTabDashboard.Visible = false;
                 btnTabProducts.Visible = false;
@@ -652,20 +656,44 @@ namespace LaptopAZ.UI
                 btnTabReturns.Location = new Point(6, 200);
                 btnTabPartners.Location = new Point(6, 250);
             }
-            else if (role == "Accountant")
+            else if (role == RolePermissions.Accountant)
             {
-                // Kế toán: dashboard, nhập kho, bán hàng, quản lý đơn, đổi trả (không sản phẩm/danh mục/nhân viên)
                 btnTabProducts.Visible = false;
                 btnTabCategories.Visible = false;
                 btnTabStaff.Visible = false;
+                btnTabPartners.Visible = false;
 
                 btnTabDashboard.Location = new Point(6, 100);
                 btnTabImport.Location = new Point(6, 150);
                 btnTabSales.Location = new Point(6, 200);
                 btnTabOrders.Location = new Point(6, 250);
                 btnTabReturns.Location = new Point(6, 300);
-                btnTabPartners.Location = new Point(6, 350);
             }
+        }
+
+        private void DisableMutationButtonsForAccountant(params Control[] buttons)
+        {
+            if (!RolePermissions.IsViewOnly) return;
+            foreach (var b in buttons)
+                if (b != null) b.Enabled = false;
+        }
+
+        private void ApplyProductEditorPermissions(Control btnAdd, Control btnDeleteProduct, Control btnSave, Control btnCancel)
+        {
+            bool canEdit = RolePermissions.CanManageProducts;
+            btnAdd.Enabled = canEdit;
+            if (btnDeleteProduct != null) btnDeleteProduct.Enabled = canEdit;
+            btnSave.Enabled = true;
+            btnCancel.Enabled = true;
+
+            var fields = new Control[]
+            {
+                _txtProductCode, _txtProductName, _txtProductCPU, _txtProductRAM, _txtProductGPU,
+                _txtProductStorage, _txtProductScreen, _txtProductImportPrice, _txtProductSalePrice,
+                _txtProductImageUrl, _cbProductCategory, _cbProductBrand, _chkProductActive
+            };
+            foreach (var f in fields)
+                if (f != null) f.Enabled = canEdit;
         }
 
         private void SetActiveTab(Button btn, string title)
@@ -701,6 +729,13 @@ namespace LaptopAZ.UI
         {
             Button btn = (Button)sender;
             string tabName = btn.Name.Replace("btnTab", "");
+
+            if (!RolePermissions.CanAccessTab(tabName))
+            {
+                MessageBox.Show("Tài khoản của bạn không có quyền truy cập mục này.", "Từ chối truy cập",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             switch (tabName)
             {
@@ -914,13 +949,13 @@ namespace LaptopAZ.UI
 
             // Main layout: 2 hàng KPI + nội dung + banner xu hướng
             var mainLayout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 3, ColumnCount = 1 };
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, scale(250)));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, scale(280)));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, scale(75)));
 
             var kpiOuter = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1, Padding = new Padding(scale(5)) };
-            kpiOuter.RowStyles.Add(new RowStyle(SizeType.Percent, 55F));
-            kpiOuter.RowStyles.Add(new RowStyle(SizeType.Percent, 45F));
+            kpiOuter.RowStyles.Add(new RowStyle(SizeType.Percent, 52F));
+            kpiOuter.RowStyles.Add(new RowStyle(SizeType.Percent, 48F));
 
             // Hàng 1: KPI vận hành hôm nay
             var kpiLayout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 4, Padding = new Padding(scale(5)) };
@@ -1059,7 +1094,7 @@ namespace LaptopAZ.UI
                 Padding = new Padding(0, 0, scale(10), 0)
             };
             // Kế toán không được mở danh sách sản phẩm từ cảnh báo tồn kho
-            if (SessionHelper.CurrentRole != "Accountant")
+            if (!RolePermissions.IsAccountant)
             {
                 btnViewAllLow.Click += (s, ev) => {
                     SetActiveTab(btnTabProducts, "Danh sách Sản Phẩm");
@@ -1558,17 +1593,17 @@ namespace LaptopAZ.UI
             {
                 BackColor = Color.White,
                 Dock = DockStyle.Fill,
-                Margin = new Padding(10),
-                Padding = new Padding(15, 15, 15, 12)
+                Margin = new Padding(8),
+                Padding = new Padding(14, 12, 14, 14),
+                MinimumSize = new Size(120, 95)
             };
 
             panel.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                using (var pen = new Pen(Color.FromArgb(226, 232, 240), 1)) // slate-200
-                {
-                    e.Graphics.DrawRectangle(pen, 0, 0, panel.Width - 1, panel.Height - 1);
-                }
+                var rc = new Rectangle(0, 0, panel.Width - 1, panel.Height - 1);
+                using (var pen = new Pen(Color.FromArgb(226, 232, 240), 1))
+                    e.Graphics.DrawRectangle(pen, rc);
             };
 
             // pnlHeader chỉ chứa badge tag — giảm chiều cao để nhường chỗ cho phần chữ bên dưới
@@ -1630,17 +1665,17 @@ namespace LaptopAZ.UI
             var lblVal = new Label
             {
                 Text = value,
-                Font = new Font("Segoe UI", 17F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
                 ForeColor = valueColor,
                 AutoSize = true,
-                MaximumSize = new Size(280, 0),
-                Margin = new Padding(0, 0, 0, 0),
+                MaximumSize = new Size(400, 0),
+                Margin = new Padding(0, 2, 0, 4),
                 BackColor = Color.Transparent
             };
             pnlTextLayout.Controls.Add(lblVal);
 
-            panel.Controls.Add(pnlTextLayout);
             panel.Controls.Add(pnlHeader);
+            panel.Controls.Add(pnlTextLayout);
 
             return panel;
         }
@@ -1685,6 +1720,51 @@ namespace LaptopAZ.UI
             btnSerial.Location = new Point(435, 14);
             btnSerial.Width = 110;
             btnSerial.Height = 30;
+
+            var btnDeleteProduct = CreatePremiumButton("Xóa sản phẩm", Color.FromArgb(239, 68, 68), Color.White);
+            btnDeleteProduct.Location = new Point(555, 14);
+            btnDeleteProduct.Width = 120;
+            btnDeleteProduct.Height = 30;
+            btnDeleteProduct.Click += (s, ev) => {
+                if (_gridProducts.SelectedRows.Count == 0)
+                {
+                    MessageBox.Show("Vui lòng chọn một sản phẩm trong danh sách trước khi xóa.",
+                        "Chưa chọn sản phẩm", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                int prodId = Convert.ToInt32(_gridProducts.SelectedRows[0].Cells["ProductId"].Value);
+                string prodName = _gridProducts.SelectedRows[0].Cells["ProductName"].Value?.ToString() ?? "";
+                var confirm = MessageBox.Show(
+                    $"Bạn chắc chắn muốn xóa sản phẩm \"{prodName}\"?\n\nHệ thống sẽ kiểm tra ràng buộc tồn kho/đơn hàng trước khi xóa.",
+                    "Xác nhận xóa sản phẩm", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (confirm != DialogResult.Yes) return;
+                try
+                {
+                    string result = _productService.DeleteProduct(prodId);
+                    switch (result)
+                    {
+                        case "DELETED":
+                            MessageBox.Show("Đã xóa sản phẩm khỏi hệ thống.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            break;
+                        case "SOFT_DELETED":
+                            MessageBox.Show("Sản phẩm đã được ngừng kinh doanh (soft delete) do còn liên kết đơn hàng.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            break;
+                        case "HAS_ACTIVE_ITEMS":
+                            MessageBox.Show("Không thể xóa: còn serial đã bán hoặc đang giữ cho đơn hàng.", "Không thể xóa", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        default:
+                            MessageBox.Show("Không tìm thấy sản phẩm.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                    }
+                    LoadProductsGrid();
+                    ResetProductEditor();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi xóa sản phẩm", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
+
             btnSerial.Click += (s, ev) => {
                 if (_gridProducts.SelectedRows.Count > 0)
                 {
@@ -1704,6 +1784,7 @@ namespace LaptopAZ.UI
             pnlSearch.Controls.Add(btnSearch);
             pnlSearch.Controls.Add(btnAdd);
             pnlSearch.Controls.Add(btnSerial);
+            pnlSearch.Controls.Add(btnDeleteProduct);
 
             pnlLeft.Controls.Add(pnlSearch);
 
@@ -1803,8 +1884,11 @@ namespace LaptopAZ.UI
                     int prodId = Convert.ToInt32(row.Cells["ProductId"].Value);
                     LoadProductToEditor(prodId);
                     lblEdTitle.Text = "📝 CẬP NHẬT LAPTOP";
+                    ApplyProductEditorPermissions(btnAdd, btnDeleteProduct, btnSave, btnCancel);
                 }
             };
+
+            ApplyProductEditorPermissions(btnAdd, btnDeleteProduct, btnSave, btnCancel);
         }
 
         private void LoadProductsGrid(string search = null)
@@ -1924,6 +2008,12 @@ namespace LaptopAZ.UI
             var btnClose2 = CreatePremiumButton("Đóng", Color.FromArgb(100, 116, 139), Color.White);
             btnClose2.Width = 100; btnClose2.Location = new Point(298, 12);
             btnClose2.Click += (s, e) => popup.Close();
+
+            if (!RolePermissions.CanManageProducts)
+            {
+                btnEdit.Enabled = false;
+                btnDelete.Enabled = false;
+            }
 
             // ── Load serial data ──────────────────────────────────────────
             void LoadSerialGrid() {
@@ -2084,6 +2174,13 @@ namespace LaptopAZ.UI
         {
             try
             {
+                if (!RolePermissions.CanManageProducts)
+                {
+                    MessageBox.Show("Tài khoản của bạn không có quyền thêm hoặc sửa sản phẩm.", "Từ chối",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 if (string.IsNullOrWhiteSpace(_txtProductCode.Text) || string.IsNullOrWhiteSpace(_txtProductName.Text) ||
                     string.IsNullOrWhiteSpace(_txtProductCPU.Text) || string.IsNullOrWhiteSpace(_txtProductRAM.Text) ||
                     string.IsNullOrWhiteSpace(_txtProductStorage.Text))
@@ -2289,8 +2386,7 @@ namespace LaptopAZ.UI
             LoadCategoriesGrid();
             LoadBrandsGrid();
 
-            // Admin chỉ xem danh mục/hãng, không thêm/xóa (theo yêu cầu đề bài)
-            if (SessionHelper.CurrentRole == "Admin")
+            if (!RolePermissions.CanManageCategoriesAndBrands)
             {
                 _txtCategoryName.Enabled = false;
                 _txtBrandName.Enabled = false;
@@ -2974,6 +3070,8 @@ namespace LaptopAZ.UI
             btnImportHistorySearch.Click += (s, ev) => LoadImportHistoryGrid(txtImportHistorySearch.Text.Trim());
             btnImportHistoryAll.Click += (s, ev) => LoadImportHistoryGrid(null);
 
+            DisableMutationButtonsForAccountant(btnAddCart, btnConfirmImport, _cbImportProduct, _txtImportSerials);
+
             // Do not call LoadImportHistoryGrid() initially to leave it blank as requested
         }
 
@@ -3075,6 +3173,11 @@ namespace LaptopAZ.UI
 
         private void ConfirmImport()
         {
+            if (RolePermissions.IsViewOnly)
+            {
+                MessageBox.Show("Kế toán chỉ được xem dữ liệu nhập kho.", "Từ chối", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             if (_cbImportSupplier.SelectedValue == null)
             {
                 MessageBox.Show("Vui lòng chọn nhà cung cấp.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -3287,18 +3390,18 @@ namespace LaptopAZ.UI
             cbProd.DisplayMember = "ProductName";
             cbProd.ValueMember = "ProductId";
 
-            var pnlSearchBlock = new Panel { Dock = DockStyle.Top, Height = 200, BackColor = Color.FromArgb(248, 250, 252) };
+            var pnlSearchBlock = new Panel { Dock = DockStyle.Top, Height = 130, BackColor = Color.FromArgb(248, 250, 252), Padding = new Padding(0, 0, 0, 4) };
             var tlpSearchRow = new TableLayoutPanel
             {
                 Dock = DockStyle.Top,
-                Height = 44,
+                Height = 48,
                 ColumnCount = 3,
                 RowCount = 1,
-                Padding = new Padding(8, 6, 8, 4)
+                Padding = new Padding(8, 8, 8, 4)
             };
-            tlpSearchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
+            tlpSearchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
             tlpSearchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            tlpSearchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 185F));
+            tlpSearchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 175F));
 
             var lblSelProd = new Label
             {
@@ -3511,9 +3614,8 @@ namespace LaptopAZ.UI
 
             // ── Footer thanh toán dùng TableLayoutPanel để tự co giãn theo chiều rộng pnlLeft ──
             // Lý do: tọa độ tuyệt đối (x=400) bị cắt khi cửa sổ hẹp hoặc tên user dài làm header co lại
-            var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 108, BackColor = Color.FromArgb(241, 245, 249), Padding = new Padding(8) };
+            var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 112, BackColor = Color.FromArgb(241, 245, 249), Padding = new Padding(8, 6, 8, 8) };
 
-            // Footer: tổng tiền | giảm giá | Đặt hàng (Pending) | Xuất Hóa Đơn (Paid — flow POS cũ)
             var tlpFooter = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -3521,10 +3623,10 @@ namespace LaptopAZ.UI
                 RowCount = 1,
                 BackColor = Color.Transparent
             };
-            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42F));
-            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
-            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 29F));
-            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 29F));
+            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38F));
+            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
+            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22F));
+            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22F));
             tlpFooter.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
             // Cột 0: Tạm tính + Thành tiền xếp dọc
@@ -3539,19 +3641,19 @@ namespace LaptopAZ.UI
                 ForeColor = Color.FromArgb(100, 116, 139),
                 Font = new Font("Segoe UI", 7.5F),
                 AutoSize = true,
-                Location = new Point(4, 58),
-                MaximumSize = new Size(320, 0)
+                Location = new Point(4, 56),
+                MaximumSize = new Size(500, 36)
             };
             pnlTotals.Controls.Add(lblPayHint);
             tlpFooter.Controls.Add(pnlTotals, 0, 0);
 
-            // Cột 1: Giảm giá — dịch sang phải 10px so với cột 0 để tạo khoảng cách
-            var pnlDiscount = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = new Padding(8, 0, 0, 0) };
-            var lblDiscount = new Label { Text = "Giảm giá (đ):", ForeColor = Color.FromArgb(71, 85, 105), Font = new Font("Segoe UI", 9F), AutoSize = true, Location = new Point(8, 6) };
-            _txtSalesDiscount = new TextBox { Width = 108, Font = new Font("Segoe UI", 9.5F), BackColor = Color.White, ForeColor = Color.FromArgb(30, 41, 59), BorderStyle = BorderStyle.FixedSingle, Location = new Point(8, 28), Text = "0" };
+            var pnlDiscount = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = new Padding(6, 4, 8, 4) };
+            var lblDiscount = new Label { Text = "Giảm giá (đ):", ForeColor = Color.FromArgb(71, 85, 105), Font = new Font("Segoe UI", 9F), Dock = DockStyle.Top, Height = 18 };
+            _txtSalesDiscount = new TextBox { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9.5F), BackColor = Color.White, ForeColor = Color.FromArgb(30, 41, 59), BorderStyle = BorderStyle.FixedSingle, Text = "0", Margin = new Padding(0, 4, 0, 0) };
             _txtSalesDiscount.TextChanged += (s, ev) => CalculateTotals();
-            pnlDiscount.Controls.Add(lblDiscount);
             pnlDiscount.Controls.Add(_txtSalesDiscount);
+            pnlDiscount.Controls.Add(lblDiscount);
+            lblDiscount.BringToFront();
             tlpFooter.Controls.Add(pnlDiscount, 1, 0);
 
             // Đặt hàng trước: Pending, không trừ kho (xử lý tại tab Quản Lý Đơn)
@@ -3628,6 +3730,10 @@ namespace LaptopAZ.UI
 
             btnSalesHistorySearch.Click += (s, ev) => LoadSalesHistoryGrid(txtSalesHistorySearch.Text.Trim());
             btnSalesHistoryAll.Click += (s, ev) => LoadSalesHistoryGrid(null);
+
+            DisableMutationButtonsForAccountant(
+                btnAddCart, btnIncreaseQty, btnDecreaseQty, btnRemoveItem, btnSelectSerials,
+                btnPlaceOrder, btnPay);
 
             // Do not call LoadSalesHistoryGrid() initially to leave it blank as requested
         }
@@ -3829,6 +3935,11 @@ namespace LaptopAZ.UI
         /// </summary>
         private void SubmitOrder()
         {
+            if (RolePermissions.IsViewOnly)
+            {
+                MessageBox.Show("Kế toán chỉ được xem dữ liệu bán hàng.", "Từ chối", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             if (!_salesCart.Any())
             {
                 MessageBox.Show("Giỏ hàng đang trống.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -3886,6 +3997,11 @@ namespace LaptopAZ.UI
         /// </summary>
         private void SubmitPendingOrder()
         {
+            if (RolePermissions.IsViewOnly)
+            {
+                MessageBox.Show("Kế toán chỉ được xem dữ liệu bán hàng.", "Từ chối", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             if (!_salesCart.Any())
             {
                 MessageBox.Show("Giỏ hàng đang trống.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -4327,6 +4443,8 @@ namespace LaptopAZ.UI
             panelMainContainer.Controls.Add(mainLayout);
 
             LoadReturnsHistoryGrid();
+
+            DisableMutationButtonsForAccountant(btnSearch, btnSubmitReturn, _clbReturnsSerials, _txtReturnsReason);
         }
 
         private void LoadReturnsHistoryGrid()
@@ -4385,6 +4503,11 @@ namespace LaptopAZ.UI
 
         private void SubmitProductReturn()
         {
+            if (RolePermissions.IsViewOnly)
+            {
+                MessageBox.Show("Kế toán chỉ được xem dữ liệu đổi trả.", "Từ chối", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             if (_returnsSelectedOrderId == 0)
             {
                 MessageBox.Show("Vui lòng chọn một hóa đơn.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -4448,7 +4571,7 @@ namespace LaptopAZ.UI
             ClearContainer();
 
             var mainLayout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1 };
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 145));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             // Top: Filter & Action Panel
@@ -4463,14 +4586,14 @@ namespace LaptopAZ.UI
             var pnlActions = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 8,
+                ColumnCount = 7,
                 RowCount = 2,
-                Padding = new Padding(4, 2, 4, 4)
+                Padding = new Padding(4, 4, 4, 4)
             };
-            for (int c = 0; c < 8; c++)
-                pnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 12.5F));
-            pnlActions.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
-            pnlActions.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
+            for (int c = 0; c < 7; c++)
+                pnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / 7F));
+            pnlActions.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            pnlActions.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
 
             var lblFilter = new Label
             {
@@ -4495,7 +4618,7 @@ namespace LaptopAZ.UI
             var btnShip = CreatePremiumButton("🚚 Đang Giao", Color.FromArgb(99, 102, 241), Color.White);
             var btnDeliver = CreatePremiumButton("📦 Đã Giao", Color.FromArgb(139, 92, 246), Color.White);
             var btnComplete = CreatePremiumButton("🏁 Hoàn Thành", Color.FromArgb(13, 148, 136), Color.White);
-            var btnRemoveLine = CreatePremiumButton("🗑 Xóa Dòng", Color.FromArgb(234, 88, 12), Color.White);
+            var btnRemoveLine = CreatePremiumButton("🗑 Xóa mặt hàng", Color.FromArgb(234, 88, 12), Color.White);
             var btnCancel = CreatePremiumButton("❌ Hủy Đơn", Color.FromArgb(239, 68, 68), Color.White);
             var btnRefresh = CreatePremiumButton("🔄 Làm Mới", Color.FromArgb(100, 116, 139), Color.White);
             foreach (var b in new[] { btnConfirm, btnPay, btnShip, btnDeliver, btnComplete, btnRemoveLine, btnCancel, btnRefresh })
@@ -4514,10 +4637,11 @@ namespace LaptopAZ.UI
             pnlActions.Controls.Add(btnDeliver, 5, 0);
             pnlActions.Controls.Add(btnComplete, 6, 0);
             pnlActions.Controls.Add(btnRemoveLine, 0, 1);
-            pnlActions.Controls.Add(btnCancel, 1, 1);
+            pnlActions.SetColumnSpan(btnRemoveLine, 2);
+            pnlActions.Controls.Add(btnCancel, 2, 1);
             pnlActions.SetColumnSpan(btnCancel, 2);
-            pnlActions.Controls.Add(btnRefresh, 3, 1);
-            pnlActions.SetColumnSpan(btnRefresh, 2);
+            pnlActions.Controls.Add(btnRefresh, 4, 1);
+            pnlActions.SetColumnSpan(btnRefresh, 3);
 
             pnlTop.Controls.Add(pnlActions);
             pnlActions.BringToFront();
@@ -4678,54 +4802,96 @@ namespace LaptopAZ.UI
                 try
                 {
                     var details = _salesService.GetOrderDetails(orderId);
-                    if (!details.Any())
+                    var serialRows = new List<(string Serial, string ProductName, string ProductCode)>();
+                    foreach (var d in details)
                     {
-                        MessageBox.Show("Đơn không có dòng sản phẩm.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        foreach (var sn in d.SerialNumbers ?? new List<string>())
+                        {
+                            if (!string.IsNullOrWhiteSpace(sn))
+                                serialRows.Add((sn, d.ProductName, d.ProductCode ?? ""));
+                        }
+                    }
+                    if (!serialRows.Any())
+                    {
+                        MessageBox.Show("Đơn không có serial nào để xóa (chỉ xóa được khi đơn đã gán serial Reserved).",
+                            "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         return;
                     }
+
                     var dlg = new Form
                     {
-                        Text = "Chọn dòng cần xóa",
-                        Size = new Size(420, 160),
+                        Text = "Chọn serial cần xóa khỏi đơn",
+                        Size = new Size(560, 420),
                         StartPosition = FormStartPosition.CenterParent,
                         FormBorderStyle = FormBorderStyle.FixedDialog,
                         MaximizeBox = false,
-                        MinimizeBox = false
+                        MinimizeBox = false,
+                        BackColor = Color.FromArgb(248, 250, 252)
                     };
-                    try
+
+                    var lblHint = new Label
                     {
-                        var detailIds = details.Select(d => d.OrderDetailId).ToList();
-                        var cbLine = new ComboBox
+                        Text = "Tick chọn một hoặc nhiều serial (tên máy | mã SP | serial):",
+                        Location = new Point(12, 10),
+                        AutoSize = true,
+                        Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(71, 85, 105)
+                    };
+                    var clb = new CheckedListBox
+                    {
+                        Location = new Point(12, 36),
+                        Size = new Size(520, 280),
+                        CheckOnClick = true,
+                        Font = new Font("Segoe UI", 9.5F),
+                        BackColor = Color.White,
+                        BorderStyle = BorderStyle.FixedSingle
+                    };
+                    foreach (var row in serialRows)
+                        clb.Items.Add($"{row.ProductName} | {row.ProductCode} | {row.Serial}", false);
+
+                    var btnOk = CreatePremiumButton("Xác nhận xóa", Color.FromArgb(239, 68, 68), Color.White);
+                    btnOk.Location = new Point(12, 328);
+                    btnOk.Width = 140;
+                    var btnDlgCancel = CreatePremiumButton("Hủy", Color.FromArgb(100, 116, 139), Color.White);
+                    btnDlgCancel.Location = new Point(162, 328);
+                    btnDlgCancel.Width = 90;
+                    btnDlgCancel.Click += (s2, e2) => dlg.Close();
+
+                    btnOk.Click += (s2, e2) =>
+                    {
+                        var selected = new List<string>();
+                        foreach (int idx in clb.CheckedIndices)
                         {
-                            DropDownStyle = ComboBoxStyle.DropDownList,
-                            Location = new Point(12, 12),
-                            Width = 380,
-                            Font = new Font("Segoe UI", 10F)
-                        };
-                        foreach (var d in details)
-                            cbLine.Items.Add($"{d.ProductName} x{d.Quantity}");
-                        if (cbLine.Items.Count > 0) cbLine.SelectedIndex = 0;
-                        var btnOk = CreatePremiumButton("Xóa dòng này", Color.FromArgb(239, 68, 68), Color.White);
-                        btnOk.Location = new Point(12, 52);
-                        btnOk.Width = 140;
-                        btnOk.Click += (s2, e2) =>
-                        {
-                            if (cbLine.SelectedIndex < 0) return;
-                            _salesService.RemoveOrderDetailLine(orderId, detailIds[cbLine.SelectedIndex]);
-                            dlg.DialogResult = DialogResult.OK;
-                        };
-                        dlg.Controls.Add(cbLine);
-                        dlg.Controls.Add(btnOk);
-                        if (dlg.ShowDialog() == DialogResult.OK)
-                        {
-                            MessageBox.Show("Đã xóa dòng khỏi đơn.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            loadGrid();
+                            var parts = clb.Items[idx].ToString().Split('|');
+                            if (parts.Length >= 3)
+                                selected.Add(parts[parts.Length - 1].Trim());
                         }
-                    }
-                    finally
+                        if (!selected.Any())
+                        {
+                            MessageBox.Show("Vui lòng chọn ít nhất một serial.", "Chưa chọn", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            return;
+                        }
+                        var confirm = MessageBox.Show(
+                            $"Xóa {selected.Count} serial khỏi đơn?\nTổng tiền đơn sẽ được tính lại.",
+                            "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                        if (confirm != DialogResult.Yes) return;
+
+                        _salesService.RemoveOrderSerials(orderId, selected);
+                        dlg.DialogResult = DialogResult.OK;
+                    };
+
+                    dlg.Controls.Add(lblHint);
+                    dlg.Controls.Add(clb);
+                    dlg.Controls.Add(btnOk);
+                    dlg.Controls.Add(btnDlgCancel);
+
+                    if (dlg.ShowDialog() == DialogResult.OK)
                     {
-                        dlg.Dispose();
+                        MessageBox.Show("Đã xóa mặt hàng và cập nhật tổng tiền đơn.", "Thành công",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        loadGrid();
                     }
+                    dlg.Dispose();
                 }
                 catch (Exception ex) { MessageBox.Show(ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             };
@@ -4759,6 +4925,9 @@ namespace LaptopAZ.UI
                 }
                 catch (Exception ex) { MessageBox.Show(ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             };
+
+            DisableMutationButtonsForAccountant(
+                btnConfirm, btnPay, btnShip, btnDeliver, btnComplete, btnRemoveLine, btnCancel);
         }
         #endregion
     }
