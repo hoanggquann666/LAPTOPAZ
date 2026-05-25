@@ -1,134 +1,213 @@
-# 💻 LaptopAZ - Hệ Thống Quản Lý Cửa Hàng Laptop Cục Bộ
+# LaptopAZ — Hệ thống quản lý cửa hàng laptop
 
-Dự án **LaptopAZ** là hệ thống quản trị nội bộ cho chuỗi cửa hàng bán lẻ Laptop chuyên nghiệp. Dự án được thiết kế chuẩn cấu trúc công nghiệp 3 tầng (3-Tier/Layered Architecture) trên nền tảng **C# .NET Framework 4.7.2** kết hợp **Entity Framework 6** và **MS SQL Server LocalDB**.
-
-Phiên bản hiện tại đã được nâng cấp toàn diện về **Trải nghiệm giao diện cao cấp (Premium Dark Theme)** và tích hợp **Cơ chế tự sửa đổi/tự khởi tạo CSDL cục bộ (Self-Healing Database)** giúp làm việc nhóm vô cùng dễ dàng.
+Ứng dụng desktop **WinForms** (.NET Framework 4.7.2) quản lý sản phẩm, nhập kho theo serial, bán hàng, đơn đặt trước, đổi trả và dashboard báo cáo. Giao diện thương hiệu **Azure Management**, sidebar tối và vùng nội dung sáng.
 
 ---
 
-## 🚀 ĐIỂM NỔI BẬT SAU NÂNG CẤP
+## Yêu cầu hệ thống
 
-### 1. Tự động hóa kết nối CSDL (Zero-Config Database)
-- **Không cần cài đặt thủ công**: Hệ thống tự động kiểm tra sự tồn tại của database `LaptopAZDB` khi khởi chạy lần đầu.
-- **Tự động sinh cấu trúc & nạp dữ liệu (Auto Seeding)**: Nếu chưa có database, chương trình sẽ tự tạo DB trên SQL Server LocalDB (`(localdb)\MSSQLLocalDB`) và tự động thực thi tệp kịch bản `SQL\LaptopAZDatabase.sql` để xây dựng cấu trúc bảng 3NF hoàn chỉnh cùng đầy đủ dữ liệu mẫu (sản phẩm, tài khoản nhân viên, hóa đơn, lịch sử kho,...). 
-- **100% Sẵn sàng chạy**: Mọi thành viên trong nhóm chỉ cần tải code về, mở Visual Studio và nhấn **F5** để chạy ngay.
-
-### 2. Giao diện tối cao cấp (Premium Dark Theme & Fluid UX)
-- **Tông màu Midnight Deep Slate**: Sử dụng bảng màu Slate hiện đại (`#0B0F19`, `#111827`, `#1E293B`) kết hợp ánh sáng Indigo hoàng gia (`#6366F1`) mang lại chiều sâu như các ứng dụng SaaS hiện đại.
-- **Card-Layout Glassmorphic**: Mọi bảng điều khiển và vùng chứa đều tự vẽ viền Slate siêu mảnh (`#2C374E`) giúp tạo chiều sâu thị giác.
-- **Premium Grid & Alternating Rows**: Các bảng dữ liệu (`DataGridView`) được định cấu hình đổi màu dòng xen kẽ tinh tế, giãn độ cao dòng thoáng đãng, và dòng chọn màu xanh Indigo quý phái.
-- **Micro-Animations & Hover Effects**: Các nút bấm có khả năng tự động tính toán làm sáng màu nền 15% khi rê chuột (`MouseOver`) và làm tối 10% khi nhấp chuột (`MouseDown`) thông qua thư viện vẽ động.
-- **Sidebar thông minh**: Menu Sidebar tự bôi tối các tab không sử dụng và làm nổi bật màu trắng tinh khiết cho tab active cùng thanh chỉ thị Indigo di chuyển mượt mà.
+| Thành phần | Phiên bản / ghi chú |
+|------------|---------------------|
+| Windows | 10 trở lên |
+| Visual Studio | **2022 17.10+** (bắt buộc mở file `.slnx`) |
+| .NET Framework | **4.7.2** Targeting Pack |
+| SQL Server | **Express LocalDB** — `(localdb)\MSSQLLocalDB` |
+| Workload VS | .NET desktop development |
 
 ---
 
-## 🛠️ CẤU TRÚC THƯ MỤC DỰ ÁN
+## Cấu trúc solution
 
-Giải pháp được phân rã thành nhiều Project tương ứng với mô hình 3 tầng chuẩn chỉnh:
 ```
-📂 LaptopAZ                      ← Thư mục gốc (sau khi clone về)
- ┣ 📂 LaptopAZ.UI                # [Tầng Giao Diện] Chứa Forms, Views, Logic điều khiển UI (WinForms)
- ┃  ┗ 📄 LaptopAZ.UI.slnx        ← FILE CẦN MỞ BẰNG VISUAL STUDIO (yêu cầu VS 2022 v17.10+)
- ┣ 📂 LaptopAZ.BLL               # [Tầng Nghiệp Vụ] Xử lý logic nghiệp vụ, tính toán doanh thu, tồn kho
- ┣ 📂 LaptopAZ.DAL               # [Tầng Truy Cập Dữ Liệu] Chứa Entity Framework DbContext
- ┣ 📂 LaptopAZ.Repository        # [Mô hình Repository & Unit of Work] Đảm bảo tính toàn vẹn giao dịch CSDL
- ┣ 📂 LaptopAZ.DTO               # [Data Transfer Objects] Định dạng dữ liệu vận chuyển giữa các tầng
- ┣ 📂 LaptopAZ.Models            # [Thực Thể] Lớp ánh xạ cấu trúc bảng CSDL (Entities)
- ┣ 📂 LaptopAZ.Helpers           # [Tiện Ích] Mã hóa mật khẩu BCrypt, quản lý phiên làm việc SessionHelper
- ┗ 📂 SQL                        # Chứa tệp kịch bản khởi tạo database LaptopAZDatabase.sql
+LAPTOPAZ/                          ← Thư mục gốc (clone)
+├── LaptopAZ.UI/                   ← WinForms — điểm vào ứng dụng
+│   ├── LaptopAZ.UI.slnx           ← Mở file này trong Visual Studio
+│   ├── MainForm.cs                ← Toàn bộ view (Dashboard, Sales, …)
+│   ├── LoginForm.cs
+│   └── App.config                 ← Connection string
+├── LaptopAZ.BLL/                  ← Nghiệp vụ (Auth, Sales, Warehouse, Dashboard, …)
+├── LaptopAZ.DAL/                  ← DbContext (Entity Framework 6)
+├── LaptopAZ.Repository/           ← Generic Repository + Unit of Work
+├── LaptopAZ.Models/               ← Entity ánh xạ bảng SQL
+├── LaptopAZ.DTO/                  ← DTO truyền giữa các tầng
+├── LaptopAZ.Helpers/              ← SessionHelper, RolePermissions, PasswordHelper
+├── SQL/
+│   ├── LaptopAZDatabase.sql       ← Schema + seed (chạy tự động lần đầu)
+│   └── Patches/                   ← Script bổ sung (nếu có)
+├── README.md                      ← Tài liệu này (hướng dẫn source)
+└── HUONGDANSUDUNG.md              ← Hướng dẫn người dùng cuối
+```
+
+### Luồng phụ thuộc tầng
+
+```
+LaptopAZ.UI → LaptopAZ.BLL → LaptopAZ.Repository → LaptopAZ.DAL → SQL Server
+                ↘ LaptopAZ.DTO, LaptopAZ.Helpers, LaptopAZ.Models
 ```
 
 ---
 
-## ⚙️ HƯỚNG DẪN CÀI ĐẶT CHI TIẾT (CHO THÀNH VIÊN TRONG NHÓM)
+## Công nghệ chính
 
-Để dự án hoạt động trơn tru nhất trên máy tính cá nhân của các thành viên trong nhóm, vui lòng thực hiện tuần tự các bước sau:
-
-### Bước 1: Chuẩn bị môi trường trong Visual Studio
-
-> ⚠️ **Yêu cầu phiên bản**: Dự án sử dụng định dạng tệp giải pháp `.slnx` mới, **bắt buộc phải dùng Visual Studio 2022 phiên bản 17.10 trở lên**. Visual Studio 2019 hoặc các phiên bản cũ hơn sẽ không mở được file này.
-
-1. Mở phần mềm **Visual Studio Installer** trên máy của bạn.
-2. Tại phiên bản Visual Studio **2022** đang sử dụng, chọn **Modify**.
-3. Tại tab **Workloads**, hãy tích chọn:
-   - **.NET desktop development** (Phát triển ứng dụng máy tính .NET).
-4. Tại tab **Individual components** (Thành phần riêng lẻ), hãy tìm kiếm và tích chọn:
-   - **.NET Framework 4.7.2 Targeting Pack** (phiên bản SDK mục tiêu của dự án).
-   - **SQL Server Express LocalDB** (máy chủ SQL Server cục bộ siêu nhẹ).
-5. Nhấn **Modify** ở góc dưới cùng bên phải để tiến hành tải và cài đặt tự động.
-
-### Bước 2: Tải code và khôi phục thư viện (Restore NuGet)
-1. Clone hoặc tải toàn bộ thư mục code dự án về máy tính:
-   ```bash
-   git clone https://github.com/hoanggquann666/QuanLyCuaHangLaptopAZ.git
-   ```
-2. Dùng Visual Studio **2022 (v17.10+)** mở file giải pháp tại đường dẫn:
-   ```
-   LaptopAZ.UI\LaptopAZ.UI.slnx
-   ```
-   *(File này nằm bên trong thư mục con `LaptopAZ.UI\`, không phải ở thư mục gốc)*
-3. Visual Studio sẽ tự động khôi phục các thư viện NuGet bị thiếu (như Entity Framework 6.4.4, BCrypt, LiveCharts,...).
-4. Nếu Visual Studio không tự chạy, hãy click chuột phải vào dòng **`Solution 'LaptopAZ'`** ở cột *Solution Explorer* phía bên phải -> Chọn **Restore NuGet Packages**.
-
-### Bước 3: Thiết lập Dự án Chạy Mặc định
-1. Tại cột *Solution Explorer* phía bên phải, click chuột phải vào thư mục dự án giao diện: **`LaptopAZ.UI`**.
-2. Chọn **Set as Startup Project** (Thiết lập làm dự án khởi động mặc định).
-3. Đảm bảo thanh công cụ phía trên hiển thị nút chạy màu xanh lá cây với chữ: **`LaptopAZ.UI`**.
-
-### Bước 4: Chạy ứng dụng và Tận hưởng
-1. Bấm nút **Start** (mũi tên xanh lá cây) hoặc nhấn phím **F5** trên bàn phím.
-2. Ứng dụng sẽ tự động phát hiện máy chưa có database `LaptopAZDB` -> tiến hành tạo database mới tinh cục bộ -> thực thi nạp toàn bộ cấu trúc bảng và dữ liệu mẫu có sẵn từ file SQL.
-3. Khi màn hình **ĐĂNG NHẬP** hiện ra, bạn đã hoàn tất quá trình cài đặt!
+| Thư viện | Mục đích |
+|----------|----------|
+| Entity Framework 6.4.4 | ORM, truy vấn LINQ |
+| BCrypt.Net-Next | Mã hóa / xác thực mật khẩu |
+| Guna.UI2.WinForms | Nút, ô nhập bo góc |
+| LiveCharts.WinForms | Biểu đồ xu hướng Dashboard |
+| ADO.NET (trong BLL) | `DapperReportService` — báo cáo doanh thu |
 
 ---
 
-## 🔑 TÀI KHOẢN MẪU KHỞI CHẠY (TESTING CREDENTIALS)
+## Chạy nhanh (lần đầu)
 
-CSDL mẫu đi kèm chứa 3 tài khoản tương ứng với 3 vai trò phân quyền nghiệp vụ sâu sắc của phần mềm:
+### 1. Clone và mở solution
 
-| Vai Trò Phân Quyền | Tên Đăng Nhập | Mật Khẩu Đăng Nhập | Mô Tả Quyền Hạn |
-| :--- | :--- | :--- | :--- |
-| **Quản trị viên (Admin)** | `tuan.leadmin` | **`admin`** | Xem Dashboard doanh thu, quản lý tất cả danh mục, sản phẩm, nhân viên, bán hàng, đổi trả... |
-| **Nhân viên Kho** | `mai.nguyenkho` | **`kho`** | Chỉ xem và thao tác phần quản lý Sản phẩm, Hãng & Danh mục, Phiếu Nhập Kho, Đối tác nhà cung cấp. |
-| **Nhân viên Bán hàng** | `nam.tranbanhang` | **`banhang`** | Chỉ xem và thao tác Lập Hóa đơn bán hàng, Quản lý Đổi trả cho khách hàng, thông tin Khách hàng. |
+```bash
+git clone <url-repo-cua-ban> LAPTOPAZ
+```
+
+Mở bằng Visual Studio 2022 (17.10+):
+
+```
+LaptopAZ.UI\LaptopAZ.UI.slnx
+```
+
+### 2. Restore & startup project
+
+- **Restore NuGet Packages** (chuột phải Solution nếu cần).
+- Chuột phải **LaptopAZ.UI** → **Set as Startup Project**.
+
+### 3. Build & chạy
+
+**Visual Studio:** F5  
+
+**Dòng lệnh:**
+
+```bash
+cd LaptopAZ.UI
+dotnet build LaptopAZ.UI.csproj -c Debug
+dotnet run --project LaptopAZ.UI.csproj
+```
+
+*(Cần .NET SDK hỗ trợ `net472` để `dotnet build`.)*
+
+### 4. Khởi tạo CSDL tự động
+
+`Program.cs` → `InitializeDatabase()`:
+
+1. Kiểm tra database `LaptopAZDB` trên LocalDB.
+2. Nếu chưa có → `CREATE DATABASE` → thực thi `SQL\LaptopAZDatabase.sql` (tách lệnh theo `GO`).
+3. Hiển thị hộp thoại thành công → mở **LoginForm**.
+
+**Không cần** chạy script SQL thủ công trên máy mới (trừ khi tự sửa DB).
 
 ---
 
-## 💡 CẤU HÌNH NÂNG CAO (KHI CẦN THIẾT)
+## Tài khoản mẫu
 
-### Chuỗi kết nối Database cục bộ
-Dự án được định vị chuỗi kết nối chuẩn trong file `LaptopAZ.UI\App.config` của dự án `LaptopAZ.UI`:
+| Vai trò | Username | Password |
+|--------|----------|----------|
+| Admin | `tuan.leadmin` | `admin` |
+| Nhân viên kho | `mai.nguyenkho` | `kho` |
+| Nhân viên bán hàng | `nam.tranbanhang` | `banhang` |
+| Kế toán | `linh.ketoan` | `ketoan` |
+
+Hash trong seed dùng định dạng mock; `PasswordHelper.VerifyPassword` hỗ trợ BCrypt và fallback cho mật khẩu mẫu trên.
+
+---
+
+## Cấu hình kết nối
+
+File: `LaptopAZ.UI\App.config`
+
 ```xml
 <connectionStrings>
-  <add name="LaptopAZDbContext" 
-       connectionString="Server=(localdb)\MSSQLLocalDB;Database=LaptopAZDB;Trusted_Connection=True;" 
+  <add name="LaptopAZDbContext"
+       connectionString="Server=(localdb)\MSSQLLocalDB;Database=LaptopAZDB;Trusted_Connection=True;"
        providerName="System.Data.SqlClient" />
 </connectionStrings>
 ```
-Nếu bạn muốn sử dụng máy chủ SQL Server đầy đủ chạy trên nền dịch vụ (Service) thay vì LocalDB mặc định, bạn chỉ cần mở file `LaptopAZ.UI\App.config` và đổi thuộc tính `Server=(localdb)\MSSQLLocalDB` thành tên server của bạn (Ví dụ: `Server=localhost\SQLEXPRESS` hoặc `Server=.`). Chương trình vẫn sẽ tự phát hiện CSDL thiếu và khởi tạo CSDL mới hoàn toàn tương tự!
+
+Đổi `Server=` nếu dùng SQL Server Express/full instance (ví dụ `localhost\SQLEXPRESS`). Ứng dụng vẫn tự tạo DB nếu chưa tồn tại (khi có quyền).
 
 ---
 
-## 🛡️ KHẮC PHỤC LỖI THƯỜNG GẶP (TROUBLESHOOTING)
+## Tầng nghiệp vụ (BLL) — tham khảo
 
-1. **Lỗi `Cannot open database "LaptopAZDB" requested by the login.`**:
-   - *Nguyên nhân*: Do CSDL bị lỗi đồng bộ quyền truy cập.
-   - *Cách sửa*: Chạy lệnh `DROP DATABASE LaptopAZDB;` trên SQL Server Management Studio rồi chạy lại phần mềm F5 để nó tự tạo lại DB sạch.
+| Service | Trách nhiệm chính |
+|---------|-------------------|
+| `AuthService` | Đăng nhập, danh sách role |
+| `ProductService` | CRUD sản phẩm, khách hàng, hãng, danh mục |
+| `WarehouseService` | Phiếu nhập, serial `ProductItem`, tồn kho |
+| `SalesService` | Đơn `HD-`/`DH-`, trạng thái, thanh toán, xóa dòng/serial |
+| `ReturnService` | Đổi trả |
+| `DashboardService` | Thống kê EF cho Dashboard |
+| `DapperReportService` | Doanh thu / aggregate SQL trực tiếp |
 
-2. **Lỗi `This file cannot be opened by this version of Visual Studio`**:
-   - *Nguyên nhân*: File `.slnx` yêu cầu Visual Studio 2022 phiên bản 17.10 trở lên.
-   - *Cách sửa*: Mở **Visual Studio Installer**, cập nhật Visual Studio 2022 lên phiên bản mới nhất.
+Phân quyền tập trung: `LaptopAZ.Helpers/RolePermissions.cs` — UI gọi `CanAccessTab`, `IsViewOnly`, `CanManageProducts`, …
 
-3. **Lỗi thiếu gói .NET Target Framework**:
-   - *Nguyên nhân*: Chưa cài đặt gói Target Pack 4.7.2.
-   - *Cách sửa*: Quay lại **Bước 1** cài đặt thành phần mục tiêu bằng Visual Studio Installer.
+---
 
-4. **Hộp thoại cảnh báo "KHÔNG tìm thấy tệp tin SQL khởi tạo"**:
-   - *Nguyên nhân*: Thư mục `SQL\` bị thiếu hoặc bị đặt nhầm chỗ sau khi clone.
-   - *Cách sửa*: Đảm bảo thư mục `SQL\` (chứa file `LaptopAZDatabase.sql`) nằm đúng ở **thư mục gốc của dự án** (cùng cấp với các thư mục `LaptopAZ.UI\`, `LaptopAZ.BLL\`...). Sau đó chạy lại F5.
+## UI động (MainForm)
 
-5. **Giao diện bị nhòe / Chữ bị tràn viền (DPI Error)**:
-   - *Nguyên nhân*: WinForms hiển thị kém trên màn hình 4K hoặc Scale màn hình Windows > 100%.
-   - *Cách sửa*: Click chuột phải vào màn hình Desktop -> *Display settings* -> Đặt mục *Scale and layout* về `100%` để có trải nghiệm hiển thị chuẩn xác nhất.
+Không tách từng UserControl theo module; `MainForm.cs` dựng giao diện theo tab:
 
-Chúc bạn và đội ngũ của mình có những giây phút lập trình và vận hành hệ thống tuyệt vời cùng **LaptopAZ**!
+| Tab (Designer) | Hàm view |
+|----------------|----------|
+| Dashboard | `ShowDashboardView()` — **4 KPI** + cảnh báo tồn + xu hướng |
+| Sản phẩm | `ShowProductsView()` |
+| Hãng & Danh mục | `ShowCategoriesView()` |
+| Nhập kho | `ShowImportView()` |
+| Bán hàng | `ShowSalesView()` |
+| Quản lý đơn | `ShowOrderManagementView()` |
+| Trả hàng | `ShowReturnsView()` |
+| Khách hàng \| Đối tác | `ShowPartnersView()` |
+| Nhân viên | `ShowStaffView()` |
+
+Scaling DPI: hàm `scale()` trong `MainForm` (theo `DeviceDpi / 96`).
+
+---
+
+## Quy ước nghiệp vụ quan trọng (đọc code)
+
+- **Serial:** Mỗi máy một `ProductItem.SerialNumber`; trạng thái `InStock` → `Reserved` (đặt hàng) → `Sold` (bán).
+- **Mã đơn:** `HD-` = bán tại quầy (`Paid` ngay); `DH-` = đặt trước (`Pending`, xử lý tại Quản lý đơn).
+- **Admin:** Không CRUD sản phẩm (`CanManageProducts == false`), vẫn quản lý hãng/danh mục và vận hành đơn.
+- **Kế toán:** `IsViewOnly` — chặn mutation ở UI và `EnsureCanMutateBusinessData()` ở BLL.
+
+Chi tiết thao tác màn hình: **HUONGDANSUDUNG.md**.
+
+---
+
+## Khắc phục sự cố
+
+| Lỗi | Cách xử lý |
+|-----|------------|
+| Không mở được `.slnx` | Cập nhật VS 2022 lên **17.10+** |
+| `Cannot open database "LaptopAZDB"` | SSMS: `DROP DATABASE LaptopAZDB;` → chạy lại F5 |
+| Không tìm thấy `LaptopAZDatabase.sql` | Đặt thư mục `SQL\` ở **thư mục gốc** solution (cùng cấp `LaptopAZ.UI`) |
+| Thiếu .NET 4.7.2 | Cài **.NET Framework 4.7.2 Targeting Pack** trong VS Installer |
+| NuGet lỗi | Restore Packages; xóa `bin`/`obj` và build lại |
+| UI cắt chữ / viền | Windows Display Scale **100%**; hoặc kiểm tra `scale()` trên màn hình DPI cao |
+| LocalDB không chạy | Cài **SQL Server Express LocalDB**; kiểm tra instance `(localdb)\MSSQLLocalDB` |
+
+---
+
+## Phát triển & đóng góp
+
+1. Tạo nhánh feature từ `main`.
+2. Sửa đúng tầng: UI chỉ điều hướng; logic nghiệp vụ trong BLL; không truy cập `DbContext` trực tiếp từ UI.
+3. Thay đổi schema: cập nhật `SQL\LaptopAZDatabase.sql` và entity tương ứng.
+4. `dotnet build` trước khi commit.
+
+---
+
+## Tài liệu liên quan
+
+- **[HUONGDANSUDUNG.md](./HUONGDANSUDUNG.md)** — Hướng dẫn sử dụng cho nhân viên / quản trị
+- **SQL/LaptopAZDatabase.sql** — Cấu trúc bảng và dữ liệu mẫu
+
+---
+
+*LaptopAZ · .NET Framework 4.7.2 · Entity Framework 6 · WinForms*

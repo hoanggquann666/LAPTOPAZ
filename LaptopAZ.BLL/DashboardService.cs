@@ -54,9 +54,9 @@ namespace LaptopAZ.BLL
                 .Take(10)
                 .ToList();
 
-            // Best sellers
+            // Best sellers — đơn đã thanh toán hoặc hoàn thành
             stats.BestSellers = _unitOfWork.OrderDetails.Query()
-                .Where(od => od.Order.Status == "Paid")
+                .Where(od => od.Order.Status == "Paid" || od.Order.Status == "Completed")
                 .GroupBy(od => od.Product.ProductName)
                 .Select(g => new BestSellerProductDTO
                 {
@@ -71,7 +71,7 @@ namespace LaptopAZ.BLL
             // Monthly revenue chart data (Last 6 months)
             DateTime sixMonthsAgo = DateTime.Today.AddMonths(-6);
             var orders = _unitOfWork.Orders.Query()
-                .Where(o => o.OrderDate >= sixMonthsAgo && o.Status == "Paid")
+                .Where(o => o.OrderDate >= sixMonthsAgo && (o.Status == "Paid" || o.Status == "Completed"))
                 .ToList(); // Materialize to do clean in-memory date formatting
 
             var monthlyGroup = orders
@@ -102,7 +102,7 @@ namespace LaptopAZ.BLL
             var end = start.AddMonths(1);
 
             var orders = _unitOfWork.Orders.Query()
-                .Where(o => o.OrderDate >= start && o.OrderDate < end && o.Status == "Paid")
+                .Where(o => o.OrderDate >= start && o.OrderDate < end && (o.Status == "Paid" || o.Status == "Completed"))
                 .ToList();
 
             var grouped = orders
@@ -128,7 +128,7 @@ namespace LaptopAZ.BLL
             var end = new DateTime(year + 1, 1, 1);
 
             var orders = _unitOfWork.Orders.Query()
-                .Where(o => o.OrderDate >= start && o.OrderDate < end && o.Status == "Paid")
+                .Where(o => o.OrderDate >= start && o.OrderDate < end && (o.Status == "Paid" || o.Status == "Completed"))
                 .ToList();
 
             var grouped = orders
@@ -152,7 +152,7 @@ namespace LaptopAZ.BLL
         public Dictionary<string, decimal> GetRevenueByYear()
         {
             var orders = _unitOfWork.Orders.Query()
-                .Where(o => o.Status == "Paid")
+                .Where(o => o.Status == "Paid" || o.Status == "Completed")
                 .ToList();
 
             var grouped = orders

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using LaptopAZ.DTO;
 using LaptopAZ.Helpers;
@@ -23,6 +24,7 @@ namespace LaptopAZ.BLL
                 return false;
 
             var user = _unitOfWork.Users.Query()
+                .Include(u => u.Role)
                 .FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase) && u.IsActive);
 
             if (user == null)
@@ -60,6 +62,9 @@ namespace LaptopAZ.BLL
         public List<UserDTO> GetAllUsers()
         {
             return _unitOfWork.Users.Query()
+                .Include(u => u.Role)
+                .OrderBy(u => u.RoleId)
+                .ThenBy(u => u.FullName)
                 .Select(u => new UserDTO
                 {
                     UserId = u.UserId,
@@ -137,7 +142,7 @@ namespace LaptopAZ.BLL
 
         public List<Role> GetRoles()
         {
-            return _unitOfWork.Roles.GetAll().ToList();
+            return _unitOfWork.Roles.GetAll().OrderBy(r => r.RoleId).ToList();
         }
 
         /// <summary>

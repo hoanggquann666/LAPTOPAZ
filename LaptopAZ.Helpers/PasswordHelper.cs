@@ -1,3 +1,4 @@
+using System;
 using BCrypt.Net;
 
 namespace LaptopAZ.Helpers
@@ -45,7 +46,8 @@ namespace LaptopAZ.Helpers
                 return true;
             }
 
-            if (hashedPassword.Contains("accountanthash") && password == "ketoan")
+            if (hashedPassword.IndexOf("accountanthash", StringComparison.OrdinalIgnoreCase) >= 0
+                && string.Equals(password, "ketoan", StringComparison.Ordinal))
             {
                 return true;
             }

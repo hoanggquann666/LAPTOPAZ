@@ -494,8 +494,8 @@ namespace LaptopAZ.BLL
             var order = _unitOfWork.Orders.GetById(orderId);
             if (order == null)
                 throw new Exception("Không tìm thấy đơn hàng.");
-            if (order.Status != "Pending" && order.Status != "Confirmed")
-                throw new Exception("Chỉ được xóa mặt hàng khi đơn ở trạng thái Pending hoặc Confirmed.");
+            if (order.Status != "Pending")
+                throw new Exception("Không thể xóa mặt hàng sau khi đơn đã được xác nhận.");
 
             var distinctSerials = serialNumbers.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
@@ -540,6 +540,9 @@ namespace LaptopAZ.BLL
                     _unitOfWork.InventoryLogs.Add(log);
                 }
 
+                // Ghi serial trước khi đếm Reserved — EF Count() query DB, không thấy thay đổi chưa SaveChanges
+                _unitOfWork.SaveChanges();
+
                 // Đồng bộ Quantity từng dòng theo số serial Reserved còn lại (tránh lệch Quantity vs serial)
                 foreach (var detailId in affectedDetailIds)
                 {
@@ -557,6 +560,9 @@ namespace LaptopAZ.BLL
                         _unitOfWork.OrderDetails.Update(detail);
                     }
                 }
+
+                // Flush thay đổi/xóa dòng trước khi đọc lại — tránh tính tổng sai khi xóa 2+ mặt hàng
+                _unitOfWork.SaveChanges();
 
                 var remaining = _unitOfWork.OrderDetails.Query().Where(od => od.OrderId == orderId).ToList();
                 if (!remaining.Any())
@@ -581,7 +587,7 @@ namespace LaptopAZ.BLL
         }
 
         /// <summary>
-        /// Xóa một dòng chi tiết khỏi đơn Pending/Confirmed; giải phóng serial Reserved.
+        /// Xóa một dòng chi tiết khỏi đơn Pending; giải phóng serial Reserved.
         /// </summary>
         public bool RemoveOrderDetailLine(int orderId, int orderDetailId)
         {
@@ -590,8 +596,8 @@ namespace LaptopAZ.BLL
             var order = _unitOfWork.Orders.GetById(orderId);
             if (order == null)
                 throw new Exception("Không tìm thấy đơn hàng.");
-            if (order.Status != "Pending" && order.Status != "Confirmed")
-                throw new Exception("Chỉ được xóa dòng khi đơn ở trạng thái Pending hoặc Confirmed.");
+            if (order.Status != "Pending")
+                throw new Exception("Không thể xóa mặt hàng sau khi đơn đã được xác nhận.");
 
             var detail = _unitOfWork.OrderDetails.GetById(orderDetailId);
             if (detail == null || detail.OrderId != orderId)
@@ -610,6 +616,8 @@ namespace LaptopAZ.BLL
                 }
 
                 _unitOfWork.OrderDetails.Remove(detail);
+
+                _unitOfWork.SaveChanges();
 
                 var remaining = _unitOfWork.OrderDetails.Query().Where(od => od.OrderId == orderId).ToList();
                 order.TotalAmount = remaining.Sum(d => d.Quantity * d.UnitPrice);

@@ -331,7 +331,10 @@ namespace LaptopAZ.UI
             pnlTopRight.Controls.Add(lblHeaderUser);
             pnlTopRight.Controls.Add(lblClock);
             pnlTopRight.Controls.Add(lblHelp);
-            pnlTopRight.Controls.Add(lblBell);
+            // PDF: ẩn chuông thông báo với tài khoản nhân viên (emoji không hiển thị ổn định)
+            lblBell.Visible = RolePermissions.IsAdmin;
+            if (lblBell.Visible)
+                pnlTopRight.Controls.Add(lblBell);
 
             // Listen to tab title changes to update header layout
             lblActiveTabTitle.TextChanged += (s, e) => {
@@ -941,34 +944,25 @@ namespace LaptopAZ.UI
 
             // Thống kê aggregate qua Dapper (không thay CRUD EF)
             decimal revenueTodayDapper = _dapperReportService.GetTodayRevenue();
-            var orderStatusCounts = _dapperReportService.GetOrderCountByStatus();
-            int CountByStatus(string status) =>
-                orderStatusCounts.FirstOrDefault(x => x.Status == status)?.Count ?? 0;
-            int pendingOrders = CountByStatus("Pending");
-            int cancelledOrders = CountByStatus("Cancelled");
-            int completedOrders = CountByStatus("Completed");
 
-            // Main layout: 2 hàng KPI + nội dung + banner xu hướng
+            // Main layout: KPI + nội dung + banner xu hướng
             var mainLayout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 3, ColumnCount = 1 };
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, scale(280)));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 36F));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, scale(75)));
 
-            var kpiOuter = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1, Padding = new Padding(scale(5)) };
-            kpiOuter.RowStyles.Add(new RowStyle(SizeType.Percent, 52F));
-            kpiOuter.RowStyles.Add(new RowStyle(SizeType.Percent, 48F));
-
-            // Hàng 1: KPI vận hành hôm nay
+            // 4 KPI — một hàng, mỗi card 25% chiều ngang, Fill chiều dọc toàn vùng KPI
             var kpiLayout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 4, Padding = new Padding(scale(5)) };
-            kpiLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            kpiLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            kpiLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            kpiLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            kpiLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            kpiLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
+            kpiLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
+            kpiLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
+            kpiLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
 
             kpiLayout.Controls.Add(CreateKPICard(
                 "Doanh thu hôm nay", 
                 revenueTodayDapper.ToString("N0") + "đ", 
-                "Dapper", 
+                "Hôm nay", 
                 Color.FromArgb(239, 246, 255),
                 Color.FromArgb(0, 82, 204), 
                 "💵", 
@@ -1009,49 +1003,7 @@ namespace LaptopAZ.UI
                 Color.FromArgb(13, 148, 136)
             ), 3, 0);
 
-            kpiOuter.Controls.Add(kpiLayout, 0, 0);
-
-            // Hàng 2: KPI workflow đơn hàng (Dapper đếm theo Status)
-            var kpiOrderLayout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 3, Padding = new Padding(scale(5)) };
-            kpiOrderLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
-            kpiOrderLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
-            kpiOrderLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
-
-            kpiOrderLayout.Controls.Add(CreateKPICard(
-                "Đơn chờ xử lý",
-                pendingOrders.ToString() + " đơn",
-                "Pending",
-                Color.FromArgb(255, 237, 213),
-                Color.FromArgb(234, 88, 12),
-                "⏳",
-                Color.FromArgb(255, 237, 213),
-                Color.FromArgb(234, 88, 12)
-            ), 0, 0);
-
-            kpiOrderLayout.Controls.Add(CreateKPICard(
-                "Đơn đã hủy",
-                cancelledOrders.ToString() + " đơn",
-                "Cancelled",
-                Color.FromArgb(254, 226, 226),
-                Color.FromArgb(220, 38, 38),
-                "❌",
-                Color.FromArgb(254, 226, 226),
-                Color.FromArgb(220, 38, 38)
-            ), 1, 0);
-
-            kpiOrderLayout.Controls.Add(CreateKPICard(
-                "Đơn hoàn thành",
-                completedOrders.ToString() + " đơn",
-                "Completed",
-                Color.FromArgb(204, 251, 241),
-                Color.FromArgb(13, 148, 136),
-                "✅",
-                Color.FromArgb(204, 251, 241),
-                Color.FromArgb(13, 148, 136)
-            ), 2, 0);
-
-            kpiOuter.Controls.Add(kpiOrderLayout, 0, 1);
-            mainLayout.Controls.Add(kpiOuter, 0, 0);
+            mainLayout.Controls.Add(kpiLayout, 0, 0);
 
             var contentLayout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 2, Padding = new Padding(scale(15)) };
             contentLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
@@ -1594,9 +1546,9 @@ namespace LaptopAZ.UI
             {
                 BackColor = Color.White,
                 Dock = DockStyle.Fill,
-                Margin = new Padding(8),
-                Padding = new Padding(14, 12, 14, 14),
-                MinimumSize = new Size(120, 95)
+                Margin = new Padding(scale(8)),
+                Padding = new Padding(scale(14), scale(12), scale(14), scale(12)),
+                MinimumSize = new Size(scale(120), scale(95))
             };
 
             panel.Paint += (s, e) =>
@@ -1607,17 +1559,33 @@ namespace LaptopAZ.UI
                     e.Graphics.DrawRectangle(pen, rc);
             };
 
-            // pnlHeader chỉ chứa badge tag — giảm chiều cao để nhường chỗ cho phần chữ bên dưới
-            var pnlHeader = new Panel
+            var tlp = new TableLayoutPanel
             {
-                Dock = DockStyle.Top,
-                Height = 26,
+                Dock = DockStyle.Fill,
+                RowCount = 2,
+                ColumnCount = 2,
                 BackColor = Color.Transparent
             };
+            tlp.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            tlp.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tlp.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tlp.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
-            // Biểu tượng emoji đã được xóa vì không hiển thị được trên mọi máy (lỗi font Segoe UI Emoji)
+            var lblT = new Label
+            {
+                Text = title.ToUpper(),
+                Font = new Font("Segoe UI Semibold", scale(9.5F), FontStyle.Bold),
+                ForeColor = Color.FromArgb(148, 163, 184),
+                AutoSize = true,
+                Margin = new Padding(0, 0, scale(6), scale(4)),
+                BackColor = Color.Transparent,
+                Anchor = AnchorStyles.Left | AnchorStyles.Top
+            };
+            tlp.Controls.Add(lblT, 0, 0);
 
-            var pnlTag = new Panel { Size = new Size(80, 22), BackColor = Color.Transparent };
+            int tagW = scale(80);
+            int tagH = scale(22);
+            var pnlTag = new Panel { Size = new Size(tagW, tagH), BackColor = Color.Transparent, Margin = new Padding(0, scale(2), 0, scale(4)), Anchor = AnchorStyles.Top | AnchorStyles.Right };
             pnlTag.Paint += (s, e) => {
                 e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 using (var brush = new SolidBrush(tagBg))
@@ -1629,55 +1597,38 @@ namespace LaptopAZ.UI
                     path.CloseFigure();
                     e.Graphics.FillPath(brush, path);
                 }
-                using (var font = new Font("Segoe UI Semibold", 7.5F, FontStyle.Bold))
+                using (var font = new Font("Segoe UI Semibold", scale(7.5F), FontStyle.Bold))
                 using (var brush = new SolidBrush(tagFore))
                 {
                     var sz = e.Graphics.MeasureString(tagText, font);
-                    e.Graphics.DrawString(tagText, font, brush, (pnlTag.Width - sz.Width)/2, (pnlTag.Height - sz.Height)/2 - 1);
+                    e.Graphics.DrawString(tagText, font, brush, (pnlTag.Width - sz.Width) / 2, (pnlTag.Height - sz.Height) / 2 - 1);
                 }
             };
-            pnlTag.Location = new Point(Math.Max(0, pnlHeader.Width - 80), 5);
-            pnlHeader.Resize += (s, e) => {
-                pnlTag.Location = new Point(Math.Max(0, pnlHeader.Width - 80), 5);
-            };
-            pnlHeader.Controls.Add(pnlTag);
-
-            // Padding = 0 để chữ sát lên đầu, tránh bị cắt phần đuôi
-            var pnlTextLayout = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.TopDown,
-                WrapContents = false,
-                Padding = new Padding(0, 0, 0, 0),
-                BackColor = Color.Transparent
-            };
-
-            var lblT = new Label
-            {
-                Text = title.ToUpper(),
-                Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(148, 163, 184),
-                AutoSize = true,
-                Margin = new Padding(0, 0, 0, 4),
-                BackColor = Color.Transparent
-            };
-            pnlTextLayout.Controls.Add(lblT);
+            tlp.Controls.Add(pnlTag, 1, 0);
 
             var lblVal = new Label
             {
                 Text = value,
-                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                Font = new Font("Segoe UI", scale(18F), FontStyle.Bold),
                 ForeColor = valueColor,
                 AutoSize = true,
-                MaximumSize = new Size(400, 0),
-                Margin = new Padding(0, 2, 0, 4),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0),
                 BackColor = Color.Transparent
             };
-            pnlTextLayout.Controls.Add(lblVal);
+            tlp.SetColumnSpan(lblVal, 2);
+            tlp.Controls.Add(lblVal, 0, 1);
 
-            panel.Controls.Add(pnlHeader);
-            panel.Controls.Add(pnlTextLayout);
+            Action refreshValueWrap = () =>
+            {
+                int maxW = Math.Max(scale(60), panel.ClientSize.Width - panel.Padding.Horizontal - scale(8));
+                lblVal.MaximumSize = new Size(maxW, 0);
+            };
+            panel.Resize += (s, e) => refreshValueWrap();
+            refreshValueWrap();
 
+            panel.Controls.Add(tlp);
             return panel;
         }
 
@@ -2808,10 +2759,12 @@ namespace LaptopAZ.UI
             mainLayout.Controls.Add(pnlRight, 1, 0);
             panelMainContainer.Controls.Add(mainLayout);
 
-            // Populate Roles Combobox
-            var roles = _authService.GetRoles();
+            // Populate Roles Combobox — hiển thị tiếng Việt (gồm Kế toán)
+            var roles = _authService.GetRoles()
+                .Select(r => new { r.RoleId, DisplayName = TranslateRole(r.RoleName) })
+                .ToList();
             _cbStaffRole.DataSource = roles;
-            _cbStaffRole.DisplayMember = "RoleName";
+            _cbStaffRole.DisplayMember = "DisplayName";
             _cbStaffRole.ValueMember = "RoleId";
 
             LoadStaffGrid();
@@ -3411,18 +3364,20 @@ namespace LaptopAZ.UI
             cbProd.DisplayMember = "ProductName";
             cbProd.ValueMember = "ProductId";
 
-            var pnlSearchBlock = new Panel { Dock = DockStyle.Top, Height = 130, BackColor = Color.FromArgb(248, 250, 252), Padding = new Padding(0, 0, 0, 4) };
+            int searchRowH = scale(44);
+            var pnlSearchBlock = new Panel { Dock = DockStyle.Top, Height = scale(130), BackColor = Color.FromArgb(248, 250, 252), Padding = new Padding(0, 0, 0, scale(4)) };
             var tlpSearchRow = new TableLayoutPanel
             {
                 Dock = DockStyle.Top,
-                Height = 48,
+                Height = searchRowH,
                 ColumnCount = 3,
                 RowCount = 1,
-                Padding = new Padding(8, 8, 8, 4)
+                Padding = new Padding(scale(8), scale(8), scale(8), scale(4))
             };
-            tlpSearchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+            tlpSearchRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tlpSearchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, scale(120F)));
             tlpSearchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            tlpSearchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 175F));
+            tlpSearchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, scale(185F)));
 
             var lblSelProd = new Label
             {
@@ -3430,21 +3385,27 @@ namespace LaptopAZ.UI
                 ForeColor = Color.FromArgb(71, 85, 105),
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold)
+                Font = new Font("Segoe UI Semibold", scale(9F), FontStyle.Bold),
+                Margin = new Padding(0)
             };
             var txtProdSearch = new Guna2TextBox
             {
                 PlaceholderText = "Tên, mã, hãng, danh mục...",
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 10F),
+                Font = new Font("Segoe UI", scale(10F)),
                 FillColor = Color.White,
-                BorderRadius = 5,
+                BorderRadius = scale(5),
                 BorderColor = Color.FromArgb(203, 213, 225),
+                Margin = new Padding(0, scale(2), scale(4), scale(2)),
+                MinimumSize = new Size(0, scale(34)),
                 FocusedState = { BorderColor = Color.FromArgb(0, 82, 204) }
             };
             var btnAddCart = CreatePremiumButton("+ Thêm Vào Giỏ Hàng", Color.FromArgb(245, 158, 11), Color.White);
             btnAddCart.Dock = DockStyle.Fill;
-            btnAddCart.Margin = new Padding(4, 2, 0, 2);
+            btnAddCart.AutoSize = false;
+            btnAddCart.MinimumSize = new Size(scale(165), scale(34));
+            btnAddCart.Margin = new Padding(scale(4), scale(2), 0, scale(2));
+            btnAddCart.Padding = new Padding(scale(4), 0, scale(4), 0);
 
             tlpSearchRow.Controls.Add(lblSelProd, 0, 0);
             tlpSearchRow.Controls.Add(txtProdSearch, 1, 0);
@@ -3633,21 +3594,19 @@ namespace LaptopAZ.UI
             pnlLeft.Controls.Add(pnlCartContainer);
             pnlCartContainer.BringToFront();
 
-            // ── Footer thanh toán dùng TableLayoutPanel để tự co giãn theo chiều rộng pnlLeft ──
-            // Lý do: tọa độ tuyệt đối (x=400) bị cắt khi cửa sổ hẹp hoặc tên user dài làm header co lại
-            var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 112, BackColor = Color.FromArgb(241, 245, 249), Padding = new Padding(8, 6, 8, 8) };
+            // ── Footer thanh toán: 3 cột (tổng tiền | giảm giá | nút) — tránh cắt chữ khi cửa sổ hẹp ──
+            var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 90, BackColor = Color.FromArgb(241, 245, 249), Padding = new Padding(8) };
 
             var tlpFooter = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 4,
+                ColumnCount = 3,
                 RowCount = 1,
                 BackColor = Color.Transparent
             };
-            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38F));
-            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
-            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22F));
-            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22F));
+            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55F));
+            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
+            tlpFooter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45F));
             tlpFooter.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
             // Cột 0: Tạm tính + Thành tiền xếp dọc
@@ -3656,41 +3615,43 @@ namespace LaptopAZ.UI
             _lblSalesFinalTotal = new Label { Text = "THÀNH TIỀN: 0 đ", ForeColor = Color.FromArgb(245, 158, 11), Font = new Font("Segoe UI", 12F, FontStyle.Bold), AutoSize = true, Location = new Point(4, 38) };
             pnlTotals.Controls.Add(_lblSalesSubTotal);
             pnlTotals.Controls.Add(_lblSalesFinalTotal);
-            var lblPayHint = new Label
-            {
-                Text = "Xuất Hóa Đơn: khách mua trực tiếp tại quầy (Paid). In hóa đơn khi đơn Hoàn thành.",
-                ForeColor = Color.FromArgb(100, 116, 139),
-                Font = new Font("Segoe UI", 7.5F),
-                AutoSize = true,
-                Location = new Point(4, 56),
-                MaximumSize = new Size(500, 36)
-            };
-            pnlTotals.Controls.Add(lblPayHint);
             tlpFooter.Controls.Add(pnlTotals, 0, 0);
 
-            var pnlDiscount = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = new Padding(6, 4, 8, 4) };
-            var lblDiscount = new Label { Text = "Giảm giá (đ):", ForeColor = Color.FromArgb(71, 85, 105), Font = new Font("Segoe UI", 9F), Dock = DockStyle.Top, Height = 18 };
-            _txtSalesDiscount = new TextBox { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9.5F), BackColor = Color.White, ForeColor = Color.FromArgb(30, 41, 59), BorderStyle = BorderStyle.FixedSingle, Text = "0", Margin = new Padding(0, 4, 0, 0) };
+            var pnlDiscount = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = new Padding(8, 0, 0, 0) };
+            var lblDiscount = new Label { Text = "Giảm giá (đ):", ForeColor = Color.FromArgb(71, 85, 105), Font = new Font("Segoe UI", 9F), AutoSize = true, Location = new Point(8, 6) };
+            _txtSalesDiscount = new TextBox { Width = 108, Font = new Font("Segoe UI", 9.5F), BackColor = Color.White, ForeColor = Color.FromArgb(30, 41, 59), BorderStyle = BorderStyle.FixedSingle, Location = new Point(8, 28), Text = "0" };
             _txtSalesDiscount.TextChanged += (s, ev) => CalculateTotals();
-            pnlDiscount.Controls.Add(_txtSalesDiscount);
             pnlDiscount.Controls.Add(lblDiscount);
-            lblDiscount.BringToFront();
+            pnlDiscount.Controls.Add(_txtSalesDiscount);
             tlpFooter.Controls.Add(pnlDiscount, 1, 0);
 
-            // Đặt hàng trước: Pending, không trừ kho (xử lý tại tab Quản Lý Đơn)
+            // Cột nút: Đặt Hàng + Xuất Hóa Đơn xếp dọc trong cùng một ô
+            var pnlPayActions = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                BackColor = Color.Transparent,
+                Padding = new Padding(6, 4, 0, 4)
+            };
+            pnlPayActions.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            pnlPayActions.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+
             var btnPlaceOrder = CreatePremiumButton("Đặt Hàng", Color.FromArgb(245, 158, 11), Color.White);
-            btnPlaceOrder.Font = new Font("Segoe UI Semibold", 10.5F, FontStyle.Bold);
+            btnPlaceOrder.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
             btnPlaceOrder.Dock = DockStyle.Fill;
-            btnPlaceOrder.Margin = new Padding(4, 4, 4, 4);
+            btnPlaceOrder.Margin = new Padding(0, 0, 0, 3);
             btnPlaceOrder.Click += (s, ev) => SubmitPendingOrder();
-            tlpFooter.Controls.Add(btnPlaceOrder, 2, 0);
 
             var btnPay = CreatePremiumButton("Xuất Hóa Đơn", Color.FromArgb(16, 185, 129), Color.White);
-            btnPay.Font = new Font("Segoe UI Semibold", 10.5F, FontStyle.Bold);
+            btnPay.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
             btnPay.Dock = DockStyle.Fill;
-            btnPay.Margin = new Padding(4, 4, 4, 4);
+            btnPay.Margin = new Padding(0, 3, 0, 0);
             btnPay.Click += (s, ev) => SubmitOrder();
-            tlpFooter.Controls.Add(btnPay, 3, 0);
+
+            pnlPayActions.Controls.Add(btnPlaceOrder, 0, 0);
+            pnlPayActions.Controls.Add(btnPay, 0, 1);
+            tlpFooter.Controls.Add(pnlPayActions, 2, 0);
 
             pnlFooter.Controls.Add(tlpFooter);
             pnlLeft.Controls.Add(pnlFooter);
@@ -4820,6 +4781,17 @@ namespace LaptopAZ.UI
             {
                 int orderId = getSelectedOrderId();
                 if (orderId == 0) return;
+                if (_gridOrderMgmt.SelectedRows.Count > 0)
+                {
+                    string statusText = _gridOrderMgmt.SelectedRows[0].Cells["Status"].Value?.ToString() ?? "";
+                    if (statusText != "Chờ xử lý")
+                    {
+                        MessageBox.Show(
+                            "Không thể xóa mặt hàng sau khi đơn đã được xác nhận.",
+                            "Từ chối", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
                 try
                 {
                     var details = _salesService.GetOrderDetails(orderId);
