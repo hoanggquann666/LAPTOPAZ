@@ -334,6 +334,11 @@ namespace LaptopAZ.BLL
             if (dto == null || string.IsNullOrWhiteSpace(dto.SupplierName) || string.IsNullOrWhiteSpace(dto.Phone))
                 return false;
 
+            if (!string.IsNullOrEmpty(dto.Email) && !System.Text.RegularExpressions.Regex.IsMatch(dto.Email, @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"))
+                return false;
+            if (string.IsNullOrEmpty(dto.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(dto.Phone, @"^0\d{9}$"))
+                return false;
+
             _unitOfWork.Suppliers.Add(new Supplier
             {
                 SupplierName = dto.SupplierName,
@@ -348,6 +353,11 @@ namespace LaptopAZ.BLL
         public bool UpdateSupplier(SupplierDTO dto)
         {
             if (dto == null) return false;
+            if (!string.IsNullOrEmpty(dto.Email) && !System.Text.RegularExpressions.Regex.IsMatch(dto.Email, @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"))
+                return false;
+            if (string.IsNullOrEmpty(dto.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(dto.Phone, @"^0\d{9}$"))
+                return false;
+
             var s = _unitOfWork.Suppliers.GetById(dto.SupplierId);
             if (s == null) return false;
 
@@ -404,6 +414,11 @@ namespace LaptopAZ.BLL
             if (dto == null || string.IsNullOrWhiteSpace(dto.CustomerName) || string.IsNullOrWhiteSpace(dto.Phone))
                 return false;
 
+            if (!string.IsNullOrEmpty(dto.Email) && !System.Text.RegularExpressions.Regex.IsMatch(dto.Email, @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"))
+                return false;
+            if (string.IsNullOrEmpty(dto.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(dto.Phone, @"^0\d{9}$"))
+                return false;
+
             // Check unique phone
             if (_unitOfWork.Customers.Any(c => c.Phone == dto.Phone))
                 return false;
@@ -422,6 +437,11 @@ namespace LaptopAZ.BLL
         public bool UpdateCustomer(CustomerDTO dto)
         {
             if (dto == null) return false;
+            if (!string.IsNullOrEmpty(dto.Email) && !System.Text.RegularExpressions.Regex.IsMatch(dto.Email, @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"))
+                return false;
+            if (string.IsNullOrEmpty(dto.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(dto.Phone, @"^0\d{9}$"))
+                return false;
+
             var c = _unitOfWork.Customers.GetById(dto.CustomerId);
             if (c == null) return false;
 

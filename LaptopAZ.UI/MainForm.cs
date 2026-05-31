@@ -1641,6 +1641,9 @@ namespace LaptopAZ.UI
         private ComboBox _cbProductCategory, _cbProductBrand;
         private CheckBox _chkProductActive;
         private int _selectedProductIdForEdit = 0;
+        private TextBox _txtProductSearch;
+        private Krypton.Toolkit.KryptonComboBox _cbFilterBrand;
+        private Krypton.Toolkit.KryptonComboBox _cbFilterCategory;
 
         private void ShowProductsView()
         {
@@ -1655,28 +1658,35 @@ namespace LaptopAZ.UI
             pnlLeft.Dock = DockStyle.Fill;
 
             // Search and Control panel
-            var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.FromArgb(241, 245, 249) };
-            var txtSearch = new TextBox { Location = new Point(15, 16), Width = 180, Font = new Font("Segoe UI", 11F), BackColor = Color.White, ForeColor = Color.FromArgb(30, 41, 59), BorderStyle = BorderStyle.FixedSingle };
-            var lblS = new Label { Text = "Tìm:", ForeColor = Color.FromArgb(71, 85, 105), Location = new Point(15, 2), Font = new Font("Segoe UI", 8F), AutoSize = true };
+            var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 95, BackColor = Color.FromArgb(241, 245, 249) };
+            _txtProductSearch = new TextBox { Location = new Point(15, 20), Width = 180, Font = new Font("Segoe UI", 11F), BackColor = Color.White, ForeColor = Color.FromArgb(30, 41, 59), BorderStyle = BorderStyle.FixedSingle };
+            var lblS = new Label { Text = "Tìm kiếm từ khóa:", ForeColor = Color.FromArgb(71, 85, 105), Location = new Point(15, 4), Font = new Font("Segoe UI", 8F), AutoSize = true };
             var btnSearch = CreatePremiumButton("Tìm Kiếm", Color.FromArgb(245, 158, 11), Color.White);
-            btnSearch.Location = new Point(205, 14);
+            btnSearch.Location = new Point(205, 18);
             btnSearch.Width = 90;
             btnSearch.Height = 30;
 
             var btnAdd = CreatePremiumButton("+ Thêm Laptop", Color.FromArgb(16, 185, 129), Color.White);
-            btnAdd.Location = new Point(305, 14);
+            btnAdd.Location = new Point(305, 18);
             btnAdd.Width = 120;
             btnAdd.Height = 30;
 
             var btnSerial = CreatePremiumButton("Xem Serial", Color.FromArgb(109, 40, 217), Color.White);
-            btnSerial.Location = new Point(435, 14);
+            btnSerial.Location = new Point(435, 18);
             btnSerial.Width = 110;
             btnSerial.Height = 30;
 
             var btnDeleteProduct = CreatePremiumButton("Xóa sản phẩm", Color.FromArgb(239, 68, 68), Color.White);
-            btnDeleteProduct.Location = new Point(555, 14);
+            btnDeleteProduct.Location = new Point(555, 18);
             btnDeleteProduct.Width = 120;
             btnDeleteProduct.Height = 30;
+
+            // Krypton Filters on Row 2
+            var lblFBrand = new Label { Text = "Hãng sản xuất:", ForeColor = Color.FromArgb(71, 85, 105), Location = new Point(15, 52), Font = new Font("Segoe UI", 8F), AutoSize = true };
+            _cbFilterBrand = new Krypton.Toolkit.KryptonComboBox { Location = new Point(15, 68), Width = 150, DropDownStyle = ComboBoxStyle.DropDownList };
+            
+            var lblFCat = new Label { Text = "Danh mục sản phẩm:", ForeColor = Color.FromArgb(71, 85, 105), Location = new Point(180, 52), Font = new Font("Segoe UI", 8F), AutoSize = true };
+            _cbFilterCategory = new Krypton.Toolkit.KryptonComboBox { Location = new Point(180, 68), Width = 150, DropDownStyle = ComboBoxStyle.DropDownList };
             btnDeleteProduct.Click += (s, ev) => {
                 if (!RolePermissions.CanManageProducts)
                 {
@@ -1741,12 +1751,16 @@ namespace LaptopAZ.UI
                 }
             };
 
-            pnlSearch.Controls.Add(txtSearch);
+            pnlSearch.Controls.Add(_txtProductSearch);
             pnlSearch.Controls.Add(lblS);
             pnlSearch.Controls.Add(btnSearch);
             pnlSearch.Controls.Add(btnAdd);
             pnlSearch.Controls.Add(btnSerial);
             pnlSearch.Controls.Add(btnDeleteProduct);
+            pnlSearch.Controls.Add(lblFBrand);
+            pnlSearch.Controls.Add(_cbFilterBrand);
+            pnlSearch.Controls.Add(lblFCat);
+            pnlSearch.Controls.Add(_cbFilterCategory);
 
             pnlLeft.Controls.Add(pnlSearch);
 
@@ -1789,7 +1803,8 @@ namespace LaptopAZ.UI
             _txtProductScreen = AddEditorField(editorFlow, "Màn hình:");
             _txtProductImportPrice = AddEditorField(editorFlow, "Giá Nhập Gốc (Reference) *:");
             _txtProductSalePrice = AddEditorField(editorFlow, "Giá Bán Công Bố *:");
-            _txtProductImageUrl = AddEditorField(editorFlow, "URL Ảnh sản phẩm:");
+            // Dummy control to preserve backward compatibility without rendering on the UI
+            _txtProductImageUrl = new TextBox();
             
             _chkProductActive = new CheckBox { Text = "Sản phẩm còn kinh doanh", ForeColor = Color.FromArgb(71, 85, 105), Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold), Margin = new Padding(0, 10, 0, 10), Checked = true };
             editorFlow.Controls.Add(_chkProductActive);
@@ -1827,11 +1842,28 @@ namespace LaptopAZ.UI
             _cbProductBrand.DisplayMember = "BrandName";
             _cbProductBrand.ValueMember = "BrandId";
 
+            // Populate Filters
+            var filterCats = new List<CategoryDTO> { new CategoryDTO { CategoryId = 0, CategoryName = "Tất cả" } };
+            filterCats.AddRange(cats);
+            _cbFilterCategory.DataSource = filterCats;
+            _cbFilterCategory.DisplayMember = "CategoryName";
+            _cbFilterCategory.ValueMember = "CategoryId";
+
+            var filterBrands = new List<BrandDTO> { new BrandDTO { BrandId = 0, BrandName = "Tất cả" } };
+            filterBrands.AddRange(brands);
+            _cbFilterBrand.DataSource = filterBrands;
+            _cbFilterBrand.DisplayMember = "BrandName";
+            _cbFilterBrand.ValueMember = "BrandId";
+
+            // Wire filter events for instant filtering
+            _cbFilterCategory.SelectedIndexChanged += (s, ev) => LoadProductsGrid();
+            _cbFilterBrand.SelectedIndexChanged += (s, ev) => LoadProductsGrid();
+
             // Load products in grid
             LoadProductsGrid();
 
             // Setup events
-            btnSearch.Click += (s, ev) => LoadProductsGrid(txtSearch.Text);
+            btnSearch.Click += (s, ev) => LoadProductsGrid();
             btnAdd.Click += (s, ev) => {
                 ResetProductEditor();
                 _selectedProductIdForEdit = 0;
@@ -1853,10 +1885,18 @@ namespace LaptopAZ.UI
             ApplyProductEditorPermissions(btnAdd, btnDeleteProduct, btnSave, btnCancel);
         }
 
-        private void LoadProductsGrid(string search = null)
+        private void LoadProductsGrid()
         {
+            string search = _txtProductSearch?.Text.Trim();
+            int? catId = null;
+            if (_cbFilterCategory?.SelectedValue is int cId && cId > 0)
+                catId = cId;
+            int? brandId = null;
+            if (_cbFilterBrand?.SelectedValue is int bId && bId > 0)
+                brandId = bId;
+
             _gridProducts.Rows.Clear();
-            var products = _productService.GetProducts(search, null, null, null);
+            var products = _productService.GetProducts(search, catId, brandId, null);
             foreach (var p in products)
             {
                 _gridProducts.Rows.Add(
@@ -2572,12 +2612,28 @@ namespace LaptopAZ.UI
                 return;
             }
 
+            string email = _txtCustEmail.Text.Trim();
+            if (!string.IsNullOrEmpty(email) && !System.Text.RegularExpressions.Regex.IsMatch(email, @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"))
+            {
+                MessageBox.Show("Email không đúng định dạng.\nVí dụ: example@gmail.com", "Lỗi dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _txtCustEmail.Focus();
+                return;
+            }
+
+            string phone = _txtCustPhone.Text.Trim();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^0\d{9}$"))
+            {
+                MessageBox.Show("Số điện thoại phải bắt đầu bằng số 0 và gồm đúng 10 chữ số.", "Lỗi dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _txtCustPhone.Focus();
+                return;
+            }
+
             var dto = new CustomerDTO
             {
                 CustomerId = _selectedCustId,
                 CustomerName = _txtCustName.Text.Trim(),
-                Phone = _txtCustPhone.Text.Trim(),
-                Email = _txtCustEmail.Text.Trim(),
+                Phone = phone,
+                Email = email,
                 Address = _txtCustAddress.Text.Trim()
             };
 
@@ -2626,12 +2682,28 @@ namespace LaptopAZ.UI
                 return;
             }
 
+            string email = _txtSuppEmail.Text.Trim();
+            if (!string.IsNullOrEmpty(email) && !System.Text.RegularExpressions.Regex.IsMatch(email, @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"))
+            {
+                MessageBox.Show("Email không đúng định dạng.\nVí dụ: example@gmail.com", "Lỗi dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _txtSuppEmail.Focus();
+                return;
+            }
+
+            string phone = _txtSuppPhone.Text.Trim();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^0\d{9}$"))
+            {
+                MessageBox.Show("Số điện thoại phải bắt đầu bằng số 0 và gồm đúng 10 chữ số.", "Lỗi dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _txtSuppPhone.Focus();
+                return;
+            }
+
             var dto = new SupplierDTO
             {
                 SupplierId = _selectedSuppId,
                 SupplierName = _txtSuppName.Text.Trim(),
-                Phone = _txtSuppPhone.Text.Trim(),
-                Email = _txtSuppEmail.Text.Trim(),
+                Phone = phone,
+                Email = email,
                 Address = _txtSuppAddress.Text.Trim()
             };
 
@@ -2826,7 +2898,6 @@ namespace LaptopAZ.UI
             _cbStaffRole.SelectedValue = u.RoleId;
             _chkStaffActive.Checked = u.IsActive;
         }
-
         private void SaveStaff()
         {
             try
@@ -2834,6 +2905,22 @@ namespace LaptopAZ.UI
                 if (string.IsNullOrWhiteSpace(_txtStaffUser.Text) || string.IsNullOrWhiteSpace(_txtStaffName.Text))
                 {
                     MessageBox.Show("Vui lòng điền các thông tin bắt buộc (*).", "Lỗi dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                string email = _txtStaffEmail.Text.Trim();
+                if (!string.IsNullOrEmpty(email) && !System.Text.RegularExpressions.Regex.IsMatch(email, @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"))
+                {
+                    MessageBox.Show("Email không đúng định dạng.\nVí dụ: example@gmail.com", "Lỗi dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    _txtStaffEmail.Focus();
+                    return;
+                }
+
+                string phone = _txtStaffPhone.Text.Trim();
+                if (!string.IsNullOrEmpty(phone) && !System.Text.RegularExpressions.Regex.IsMatch(phone, @"^0\d{9}$"))
+                {
+                    MessageBox.Show("Số điện thoại phải bắt đầu bằng số 0 và gồm đúng 10 chữ số.", "Lỗi dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    _txtStaffPhone.Focus();
                     return;
                 }
 
@@ -2850,8 +2937,8 @@ namespace LaptopAZ.UI
                         _txtStaffUser.Text.Trim(),
                         _txtStaffPwd.Text,
                         _txtStaffName.Text.Trim(),
-                        _txtStaffPhone.Text.Trim(),
-                        _txtStaffEmail.Text.Trim(),
+                        phone,
+                        email,
                         (int)_cbStaffRole.SelectedValue
                     );
                 }
@@ -2860,8 +2947,8 @@ namespace LaptopAZ.UI
                     success = _authService.UpdateUser(
                         _selectedStaffId,
                         _txtStaffName.Text.Trim(),
-                        _txtStaffPhone.Text.Trim(),
-                        _txtStaffEmail.Text.Trim(),
+                        phone,
+                        email,
                         (int)_cbStaffRole.SelectedValue,
                         _chkStaffActive.Checked,
                         _txtStaffPwd.Text

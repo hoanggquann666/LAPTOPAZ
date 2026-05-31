@@ -84,6 +84,11 @@ namespace LaptopAZ.BLL
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(plainPassword) || string.IsNullOrWhiteSpace(fullName))
                 return false;
 
+            if (!string.IsNullOrEmpty(email) && !System.Text.RegularExpressions.Regex.IsMatch(email, @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"))
+                return false;
+            if (!string.IsNullOrEmpty(phone) && !System.Text.RegularExpressions.Regex.IsMatch(phone, @"^0\d{9}$"))
+                return false;
+
             // Check if username already exists
             bool exists = _unitOfWork.Users.Any(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
             if (exists)
@@ -107,6 +112,11 @@ namespace LaptopAZ.BLL
 
         public bool UpdateUser(int userId, string fullName, string phone, string email, int roleId, bool isActive, string newPassword = null)
         {
+            if (!string.IsNullOrEmpty(email) && !System.Text.RegularExpressions.Regex.IsMatch(email, @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"))
+                return false;
+            if (!string.IsNullOrEmpty(phone) && !System.Text.RegularExpressions.Regex.IsMatch(phone, @"^0\d{9}$"))
+                return false;
+
             var user = _unitOfWork.Users.GetById(userId);
             if (user == null)
                 return false;

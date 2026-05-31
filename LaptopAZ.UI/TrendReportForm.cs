@@ -1,21 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using LaptopAZ.BLL;
 using LaptopAZ.Repository;
+using LiveCharts;
+using LiveCharts.Wpf;
+using LiveCharts.WinForms;
 
 namespace LaptopAZ.UI
 {
     /// <summary>
-    /// Trend Report Form - displays revenue charts filtered by Day / Month / Year.
-    /// Requires IUnitOfWork to initialize DashboardService internally.
+    /// Trend Report Form - displays revenue and sales charts using LiveCharts.
     /// </summary>
     public class TrendReportForm : Form
     {
         // ── Services ─────────────────────────────────────────────────────
         private readonly DashboardService _dashboardService;
+        private readonly DapperReportService _dapperReportService;
 
         // ── Current data ─────────────────────────────────────────────────
         private Dictionary<string, decimal> _chartData = new Dictionary<string, decimal>();
@@ -24,23 +26,33 @@ namespace LaptopAZ.UI
         private RadioButton _rbDay, _rbMonth, _rbYear;
         private NumericUpDown _numMonth, _numYear;
         private Label _lblMonth, _lblTotal;
-        private Panel _pnlChart;
         private Button _btnRefresh;
+        private TabControl _tabControl;
+        private TabPage _tabRevenue, _tabTopProducts, _tabOrderStatus;
+
+        // ── LiveCharts Controls ──────────────────────────────────────────
+        private LiveCharts.WinForms.CartesianChart _chartRevenue;
+        private LiveCharts.WinForms.CartesianChart _chartTopProducts;
+        private LiveCharts.WinForms.PieChart _chartOrderStatus;
 
         // ─────────────────────────────────────────────────────────────────
         public TrendReportForm(IUnitOfWork unitOfWork)
         {
             if (unitOfWork == null) throw new ArgumentNullException(nameof(unitOfWork));
             _dashboardService = new DashboardService(unitOfWork);
+            _dapperReportService = new DapperReportService();
+            
             InitializeComponent();
-            LoadChart(); // Load "Theo Tháng" as default
+            LoadRevenueData();
+            LoadTopProductsData();
+            LoadOrderStatusData();
         }
 
         private void InitializeComponent()
         {
-            this.Text = "Phân Tích Xu Hướng Doanh Thu";
-            this.Size = new Size(940, 620);
-            this.MinimumSize = new Size(720, 500);
+            this.Text = "Phân Tích Xu Hướng & Báo Cáo Thống Kê";
+            this.Size = new Size(1000, 700);
+            this.MinimumSize = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.Sizable;
             this.MaximizeBox = true;
@@ -64,7 +76,7 @@ namespace LaptopAZ.UI
 
             var lblTitle = new Label
             {
-                Text = "📈  BÁO CÁO XU HƯỚNG DOANH THU",
+                Text = "📊  BÁO CÁO THỐNG KÊ LIVECHARTS",
                 Font = new Font("Segoe UI", 15F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(15, 23, 42),
                 Location = new Point(20, 18),
@@ -72,7 +84,7 @@ namespace LaptopAZ.UI
             };
             pnlHeader.Controls.Add(lblTitle);
 
-            // ── Filter Toolbar ────────────────────────────────────────────
+            // ── Filter Toolbar (for Revenue) ──────────────────────────────
             var pnlFilter = new Panel
             {
                 Dock = DockStyle.Top,
@@ -89,7 +101,7 @@ namespace LaptopAZ.UI
             // Mode radio buttons
             var lblMode = new Label
             {
-                Text = "Xem theo:",
+                Text = "Xem doanh thu:",
                 Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(71, 85, 105),
                 Location = new Point(16, 20),
@@ -100,7 +112,7 @@ namespace LaptopAZ.UI
             {
                 Text = "Tháng",
                 Checked = true,
-                Location = new Point(90, 18),
+                Location = new Point(125, 18),
                 Font = new Font("Segoe UI", 9.5F),
                 ForeColor = Color.FromArgb(30, 41, 59),
                 AutoSize = true,
@@ -110,7 +122,7 @@ namespace LaptopAZ.UI
             _rbDay = new RadioButton
             {
                 Text = "Ngày",
-                Location = new Point(165, 18),
+                Location = new Point(200, 18),
                 Font = new Font("Segoe UI", 9.5F),
                 ForeColor = Color.FromArgb(30, 41, 59),
                 AutoSize = true,
@@ -120,7 +132,7 @@ namespace LaptopAZ.UI
             _rbYear = new RadioButton
             {
                 Text = "Năm",
-                Location = new Point(228, 18),
+                Location = new Point(265, 18),
                 Font = new Font("Segoe UI", 9.5F),
                 ForeColor = Color.FromArgb(30, 41, 59),
                 AutoSize = true,
@@ -133,8 +145,9 @@ namespace LaptopAZ.UI
                 Text = "Tháng:",
                 Font = new Font("Segoe UI", 9F),
                 ForeColor = Color.FromArgb(71, 85, 105),
-                Location = new Point(302, 21),
-                AutoSize = true
+                Location = new Point(335, 21),
+                AutoSize = true,
+                Visible = false
             };
 
             _numMonth = new NumericUpDown
@@ -142,12 +155,13 @@ namespace LaptopAZ.UI
                 Minimum = 1,
                 Maximum = 12,
                 Value = DateTime.Today.Month,
-                Location = new Point(352, 16),
+                Location = new Point(385, 16),
                 Width = 52,
                 Height = 26,
                 Font = new Font("Segoe UI", 9.5F),
                 ForeColor = Color.FromArgb(30, 41, 59),
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                Visible = false
             };
 
             // Year spinner
@@ -156,7 +170,7 @@ namespace LaptopAZ.UI
                 Text = "Năm:",
                 Font = new Font("Segoe UI", 9F),
                 ForeColor = Color.FromArgb(71, 85, 105),
-                Location = new Point(414, 21),
+                Location = new Point(447, 21),
                 AutoSize = true
             };
 
@@ -165,7 +179,7 @@ namespace LaptopAZ.UI
                 Minimum = 2000,
                 Maximum = 2099,
                 Value = DateTime.Today.Year,
-                Location = new Point(450, 16),
+                Location = new Point(483, 16),
                 Width = 72,
                 Height = 26,
                 Font = new Font("Segoe UI", 9.5F),
@@ -177,7 +191,7 @@ namespace LaptopAZ.UI
             _btnRefresh = new Button
             {
                 Text = "🔄  Tải Lại",
-                Location = new Point(534, 14),
+                Location = new Point(567, 14),
                 Size = new Size(100, 30),
                 Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
                 BackColor = Color.FromArgb(0, 82, 204),
@@ -186,7 +200,11 @@ namespace LaptopAZ.UI
                 Cursor = Cursors.Hand
             };
             _btnRefresh.FlatAppearance.BorderSize = 0;
-            _btnRefresh.Click += (s, e) => LoadChart();
+            _btnRefresh.Click += (s, e) => {
+                LoadRevenueData();
+                LoadTopProductsData();
+                LoadOrderStatusData();
+            };
 
             // Total label
             _lblTotal = new Label
@@ -194,7 +212,7 @@ namespace LaptopAZ.UI
                 Text = "Tổng: đang tính...",
                 Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(0, 82, 204),
-                Location = new Point(650, 20),
+                Location = new Point(680, 20),
                 AutoSize = true
             };
 
@@ -209,14 +227,43 @@ namespace LaptopAZ.UI
             _rbDay.CheckedChanged += OnModeChanged;
             _rbYear.CheckedChanged += OnModeChanged;
 
-            // ── Chart Panel ───────────────────────────────────────────────
-            _pnlChart = new Panel
+            // ── Tab Control for Charts ────────────────────────────────────
+            _tabControl = new TabControl
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.White,
-                Padding = new Padding(24)
+                Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
+                Padding = new Point(12, 6)
             };
-            _pnlChart.Paint += PnlChart_Paint;
+
+            _tabRevenue = new TabPage { Text = "📈 Doanh Thu Từng Kỳ", BackColor = Color.White };
+            _tabTopProducts = new TabPage { Text = "🔥 Top Sản Phẩm Bán Chạy", BackColor = Color.White };
+            _tabOrderStatus = new TabPage { Text = "📦 Trạng Thái Đơn Hàng", BackColor = Color.White };
+
+            _tabControl.TabPages.AddRange(new TabPage[] { _tabRevenue, _tabTopProducts, _tabOrderStatus });
+
+            // 1. Revenue Chart
+            _chartRevenue = new LiveCharts.WinForms.CartesianChart
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(10)
+            };
+            _tabRevenue.Controls.Add(_chartRevenue);
+
+            // 2. Top Products Chart
+            _chartTopProducts = new LiveCharts.WinForms.CartesianChart
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(10)
+            };
+            _tabTopProducts.Controls.Add(_chartTopProducts);
+
+            // 3. Order Status Chart
+            _chartOrderStatus = new LiveCharts.WinForms.PieChart
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(10)
+            };
+            _tabOrderStatus.Controls.Add(_chartOrderStatus);
 
             // ── Footer Panel ──────────────────────────────────────────────
             var pnlFooter = new Panel
@@ -233,7 +280,7 @@ namespace LaptopAZ.UI
 
             var lblNote = new Label
             {
-                Text = "Chỉ tính các đơn hàng có trạng thái \"Đã thanh toán\" (Paid).",
+                Text = "Thống kê tự động cập nhật thời gian thực dựa trên cơ sở dữ liệu LaptopAZ.",
                 Font = new Font("Segoe UI", 8.5F, FontStyle.Italic),
                 ForeColor = Color.FromArgb(148, 163, 184),
                 Location = new Point(16, 20),
@@ -260,25 +307,22 @@ namespace LaptopAZ.UI
             pnlFooter.Controls.Add(btnClose);
 
             // ── Assemble ─────────────────────────────────────────────────
-            this.Controls.Add(_pnlChart);
+            this.Controls.Add(_tabControl);
             this.Controls.Add(pnlFilter);
             this.Controls.Add(pnlHeader);
             this.Controls.Add(pnlFooter);
         }
 
-        // ─── Mode Changed Handler ──────────────────────────────────────────
         private void OnModeChanged(object sender, EventArgs e)
         {
-            // Month spinner visible only in "by-day" mode
             _lblMonth.Visible = _rbDay.Checked;
             _numMonth.Visible = _rbDay.Checked;
-            // Year hidden in "by-year" mode
             _numYear.Enabled = !_rbYear.Checked;
-            LoadChart();
+            LoadRevenueData();
         }
 
         // ─── Data Loading ─────────────────────────────────────────────────
-        private void LoadChart()
+        private void LoadRevenueData()
         {
             try
             {
@@ -292,244 +336,137 @@ namespace LaptopAZ.UI
                 else
                     _chartData = _dashboardService.GetRevenueByMonth(year);
 
-                // Update total
                 decimal total = 0;
-                foreach (var v in _chartData.Values) total += v;
+                var values = new ChartValues<decimal>();
+                var labels = new List<string>();
+
+                foreach (var kvp in _chartData)
+                {
+                    labels.Add(kvp.Key);
+                    values.Add(kvp.Value);
+                    total += kvp.Value;
+                }
+
                 _lblTotal.Text = $"Tổng: {total:N0} đ";
 
-                _pnlChart.Invalidate(); // Trigger repaint
+                _chartRevenue.Series = new SeriesCollection
+                {
+                    new ColumnSeries
+                    {
+                        Title = "Doanh thu",
+                        Values = values,
+                        Fill = System.Windows.Media.Brushes.DodgerBlue,
+                        DataLabels = values.Count <= 12
+                    }
+                };
+
+                _chartRevenue.AxisX.Clear();
+                _chartRevenue.AxisX.Add(new Axis
+                {
+                    Title = _rbDay.Checked ? "Ngày" : (_rbYear.Checked ? "Năm" : "Tháng"),
+                    Labels = labels.ToArray(),
+                    Separator = new Separator { Step = 1 }
+                });
+
+                _chartRevenue.AxisY.Clear();
+                _chartRevenue.AxisY.Add(new Axis
+                {
+                    Title = "Doanh thu (đ)",
+                    LabelFormatter = val => val.ToString("N0")
+                });
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi tải dữ liệu biểu đồ:\n" + ex.Message,
+                MessageBox.Show("Lỗi khi tải dữ liệu doanh thu:\n" + ex.Message,
                     "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // ─── Chart Paint ─────────────────────────────────────────────────
-        private void PnlChart_Paint(object sender, PaintEventArgs e)
+        private void LoadTopProductsData()
         {
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
-
-            var rect = ((Panel)sender).ClientRectangle;
-
-            int paddingLeft = 95;
-            int paddingRight = 30;
-            int paddingTop = 52;
-            int paddingBottom = 50;
-
-            int chartWidth = rect.Width - paddingLeft - paddingRight;
-            int chartHeight = rect.Height - paddingTop - paddingBottom;
-
-            if (chartWidth < 10 || chartHeight < 10) return;
-
-            // ── Chart background ───────────────────────────────────────
-            using (var bg = new SolidBrush(Color.White))
-                g.FillRectangle(bg, rect);
-
-            // ── Determine max value ────────────────────────────────────
-            decimal maxVal = 1;
-            foreach (var v in _chartData.Values)
-                if (v > maxVal) maxVal = v;
-
-            // Round max up for clean grid
-            double log = Math.Log10((double)maxVal);
-            double mag = Math.Pow(10, Math.Floor(log));
-            decimal roundedMax = (decimal)(Math.Ceiling((double)maxVal / mag) * mag);
-            if (roundedMax <= 0) roundedMax = 10_000_000;
-
-            // ── Draw Y-axis grid lines & labels ────────────────────────
-            int gridLines = 5;
-            using (var gridPen = new Pen(Color.FromArgb(241, 245, 249), 1))
-            using (var gridPenSolid = new Pen(Color.FromArgb(226, 232, 240), 1))
-            using (var axisFont = new Font("Segoe UI", 7.5F))
-            using (var axisBrush = new SolidBrush(Color.FromArgb(148, 163, 184)))
-            using (var fmt = new StringFormat { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Center })
+            try
             {
-                for (int i = 0; i <= gridLines; i++)
+                var topProducts = _dapperReportService.GetTopSellingProducts(10);
+                topProducts.Reverse(); // Đưa sản phẩm bán chạy nhất lên trên cùng
+
+                var names = new List<string>();
+                var quantities = new ChartValues<int>();
+
+                foreach (var p in topProducts)
                 {
-                    decimal gridVal = roundedMax / gridLines * i;
-                    float y = paddingTop + chartHeight - (float)gridVal / (float)roundedMax * chartHeight;
-
-                    // Dashed grid line
-                    using (var dash = new Pen(i == 0 ? Color.FromArgb(203, 213, 225) : Color.FromArgb(241, 245, 249), 1))
-                    {
-                        if (i > 0) dash.DashStyle = DashStyle.Dash;
-                        g.DrawLine(dash, paddingLeft, y, paddingLeft + chartWidth, y);
-                    }
-
-                    // Y-axis label
-                    string label = FormatCurrency(gridVal);
-                    g.DrawString(label, axisFont, axisBrush,
-                        new RectangleF(0, y - 10, paddingLeft - 6, 20), fmt);
+                    names.Add(p.ProductName);
+                    quantities.Add(p.QuantitySold);
                 }
-            }
 
-            // ── Draw bars ─────────────────────────────────────────────
-            int count = _chartData.Count;
-            if (count == 0)
-            {
-                DrawNoData(g, rect);
-                return;
-            }
-
-            // Limit bar width for very many data points (daily view has 31 bars)
-            float spacing = chartWidth / (float)count;
-            float barWidth = Math.Max(6, spacing * 0.55f);
-
-            using (var labelFont = new Font("Segoe UI", count > 20 ? 6.5F : 8F, FontStyle.Bold))
-            using (var valFont = new Font("Segoe UI", count > 20 ? 6F : 7.5F))
-            using (var textBrush = new SolidBrush(Color.FromArgb(71, 85, 105)))
-            using (var highlightBrush = new SolidBrush(Color.FromArgb(0, 82, 204)))
-            {
-                int index = 0;
-                decimal maxInData = 0;
-                foreach (var v in _chartData.Values) if (v > maxInData) maxInData = v;
-
-                foreach (var kvp in _chartData)
+                _chartTopProducts.Series = new SeriesCollection
                 {
-                    string label = kvp.Key;
-                    decimal revenue = kvp.Value;
-
-                    float centerX = paddingLeft + index * spacing + spacing / 2;
-                    float barX = centerX - barWidth / 2;
-                    float barH = revenue > 0
-                        ? (float)revenue / (float)roundedMax * chartHeight
-                        : 0;
-                    float barY = paddingTop + chartHeight - barH;
-
-                    bool isHighest = revenue > 0 && revenue == maxInData;
-
-                    if (revenue > 0)
+                    new RowSeries
                     {
-                        var barRect = new RectangleF(barX, barY, barWidth, barH);
-
-                        // Colors: highlight max bar in a brighter gradient
-                        Color colorTop = isHighest
-                            ? Color.FromArgb(99, 102, 241)   // Indigo (highlight)
-                            : Color.FromArgb(0, 82, 204);    // Blue
-                        Color colorBottom = isHighest
-                            ? Color.FromArgb(139, 92, 246)   // Purple
-                            : Color.FromArgb(56, 131, 255);  // Light blue
-
-                        using (var path = new GraphicsPath())
-                        {
-                            float radius = Math.Min(5, barH / 2);
-                            if (barH > radius * 2)
-                            {
-                                path.AddArc(barRect.X, barRect.Y, radius * 2, radius * 2, 180, 90);
-                                path.AddArc(barRect.Right - radius * 2, barRect.Y, radius * 2, radius * 2, 270, 90);
-                                path.AddLine(barRect.Right, barRect.Bottom, barRect.X, barRect.Bottom);
-                                path.CloseFigure();
-                            }
-                            else
-                            {
-                                path.AddRectangle(barRect);
-                            }
-
-                            using (var blendBrush = new LinearGradientBrush(
-                                barRect,
-                                colorTop, colorBottom,
-                                LinearGradientMode.Vertical))
-                            {
-                                g.FillPath(blendBrush, path);
-                            }
-                        }
-
-                        // Value label on top (only for wider bars)
-                        if (barWidth > 18 && barH > 14)
-                        {
-                            string valText = FormatCurrency(revenue);
-                            var szVal = g.MeasureString(valText, valFont);
-                            using (var vb = new SolidBrush(isHighest ? Color.FromArgb(99, 102, 241) : Color.FromArgb(0, 82, 204)))
-                                g.DrawString(valText, valFont, vb, centerX - szVal.Width / 2, barY - szVal.Height - 2);
-                        }
+                        Title = "Số lượng đã bán",
+                        Values = quantities,
+                        Fill = System.Windows.Media.Brushes.MediumSeaGreen,
+                        DataLabels = true
                     }
-                    else
+                };
+
+                _chartTopProducts.AxisY.Clear();
+                _chartTopProducts.AxisY.Add(new Axis
+                {
+                    Title = "Sản phẩm",
+                    Labels = names.ToArray()
+                });
+
+                _chartTopProducts.AxisX.Clear();
+                _chartTopProducts.AxisX.Add(new Axis
+                {
+                    Title = "Số lượng máy",
+                    LabelFormatter = val => val.ToString("N0")
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi tải dữ liệu sản phẩm bán chạy:\n" + ex.Message,
+                    "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void LoadOrderStatusData()
+        {
+            try
+            {
+                var statusCounts = _dapperReportService.GetOrderCountByStatus();
+                var series = new SeriesCollection();
+
+                foreach (var sc in statusCounts)
+                {
+                    string displayName = sc.Status;
+                    switch (sc.Status)
                     {
-                        // Zero bar: draw a thin gray line
-                        using (var zeroPen = new Pen(Color.FromArgb(226, 232, 240), 1))
-                            g.DrawLine(zeroPen, barX, paddingTop + chartHeight, barX + barWidth, paddingTop + chartHeight);
+                        case "Pending": displayName = "Chờ xử lý"; break;
+                        case "Confirmed": displayName = "Xác nhận"; break;
+                        case "Shipped": displayName = "Đang giao"; break;
+                        case "Delivered": displayName = "Đã giao"; break;
+                        case "Completed": displayName = "Hoàn thành"; break;
+                        case "Cancelled": displayName = "Hủy"; break;
+                        case "Paid": displayName = "Đã thanh toán"; break;
                     }
 
-                    // X-axis label
-                    if (count <= 31)
+                    series.Add(new PieSeries
                     {
-                        var szLbl = g.MeasureString(label, labelFont);
-                        float lx = centerX - szLbl.Width / 2;
-                        float ly = paddingTop + chartHeight + 8;
-
-                        // Rotate labels for day view to avoid overlap
-                        if (count > 15)
-                        {
-                            var state = g.Save();
-                            g.TranslateTransform(centerX, ly + szLbl.Width / 2);
-                            g.RotateTransform(-55);
-                            g.DrawString(label, labelFont, textBrush, -szLbl.Width / 2, -szLbl.Height / 2);
-                            g.Restore(state);
-                        }
-                        else
-                        {
-                            g.DrawString(label, labelFont, textBrush, lx, ly);
-                        }
-                    }
-
-                    index++;
+                        Title = displayName,
+                        Values = new ChartValues<int> { sc.Count },
+                        DataLabels = true,
+                        LabelPoint = chartPoint => $"{chartPoint.Y} đơn ({chartPoint.Participation:P0})"
+                    });
                 }
+
+                _chartOrderStatus.Series = series;
+                _chartOrderStatus.LegendLocation = LegendLocation.Right;
             }
-
-            // ── Axes ─────────────────────────────────────────────────
-            using (var axisPen = new Pen(Color.FromArgb(203, 213, 225), 1.5f))
+            catch (Exception ex)
             {
-                g.DrawLine(axisPen, paddingLeft, paddingTop, paddingLeft, paddingTop + chartHeight);
-                g.DrawLine(axisPen, paddingLeft, paddingTop + chartHeight,
-                    paddingLeft + chartWidth, paddingTop + chartHeight);
-            }
-
-            // ── Chart title ───────────────────────────────────────────
-            string titleText = BuildChartTitle();
-            using (var titleFont = new Font("Segoe UI Semibold", 10F, FontStyle.Bold))
-            using (var titleBrush = new SolidBrush(Color.FromArgb(30, 41, 59)))
-            {
-                var sz = g.MeasureString(titleText, titleFont);
-                g.DrawString(titleText, titleFont, titleBrush,
-                    paddingLeft + (chartWidth - sz.Width) / 2, 12);
-            }
-        }
-
-        // ─── Helpers ─────────────────────────────────────────────────────
-        private static string FormatCurrency(decimal value)
-        {
-            if (value >= 1_000_000_000)
-                return $"{value / 1_000_000_000:0.##}Tỷ";
-            if (value >= 1_000_000)
-                return $"{value / 1_000_000:0.##}Tr";
-            if (value >= 1_000)
-                return $"{value / 1_000:0.##}K";
-            return $"{value:N0}";
-        }
-
-        private string BuildChartTitle()
-        {
-            if (_rbDay.Checked)
-                return $"Doanh thu theo ngày — Tháng {_numMonth.Value}/{_numYear.Value}";
-            if (_rbYear.Checked)
-                return "Doanh thu theo năm (toàn bộ lịch sử)";
-            return $"Doanh thu theo tháng — Năm {_numYear.Value}";
-        }
-
-        private static void DrawNoData(Graphics g, Rectangle rect)
-        {
-            using (var font = new Font("Segoe UI", 13F, FontStyle.Italic))
-            using (var brush = new SolidBrush(Color.FromArgb(203, 213, 225)))
-            {
-                string msg = "Không có dữ liệu doanh thu cho kỳ này.";
-                var sz = g.MeasureString(msg, font);
-                g.DrawString(msg, font, brush,
-                    (rect.Width - sz.Width) / 2,
-                    (rect.Height - sz.Height) / 2);
+                MessageBox.Show("Lỗi khi tải dữ liệu trạng thái đơn hàng:\n" + ex.Message,
+                    "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

@@ -87,7 +87,7 @@ namespace LaptopAZ.UI
                     return false;
                 }
 
-                string scriptText = File.ReadAllText(sqlFilePath);
+                string scriptText = File.ReadAllText(sqlFilePath, System.Text.Encoding.UTF8);
                 
                 // Tách toàn bộ câu lệnh SQL bằng từ khóa GO trên một dòng riêng biệt
                 var commandTexts = Regex.Split(
